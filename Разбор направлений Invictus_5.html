@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Разбор направлений Invictus</title>
+<meta name="description" content="Воронка лидов из выгрузки amoCRM: квалы, продажи и деньги по направлениям и utm_medium.">
+<style>
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --surface2:#fbfcfd; --ink:#161a20; --muted:#606b7a;
+  --border:#e4e8ee; --border2:#eef1f5;
+  --accent:#e35d2b; --accent-soft:#fdeee7;
+  --good:#1f9d5f; --good-soft:#e7f5ee;
+  --warn:#c98213; --bad:#d24b3e; --bad-soft:#fbecea;
+  --shadow:0 1px 2px rgba(20,26,32,.04),0 6px 20px rgba(20,26,32,.05);
+  --r:12px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#161b22; --surface2:#1b2129; --ink:#e7ebf0; --muted:#94a0b0;
+    --border:#262d37; --border2:#20272f;
+    --accent:#ff7c47; --accent-soft:#2a1a12;
+    --good:#3bc47f; --good-soft:#12241b;
+    --warn:#e0a13c; --bad:#f0685a; --bad-soft:#2a1512;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1116; --surface:#161b22; --surface2:#1b2129; --ink:#e7ebf0; --muted:#94a0b0;
+  --border:#262d37; --border2:#20272f;
+  --accent:#ff7c47; --accent-soft:#2a1a12;
+  --good:#3bc47f; --good-soft:#12241b;
+  --warn:#e0a13c; --bad:#f0685a; --bad-soft:#2a1512;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-family:"Barlow Semi Condensed","Barlow",system-ui,sans-serif;font-weight:700;letter-spacing:.2px}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:18px;padding-block:22px 60px}
+.tnum{font-variant-numeric:tabular-nums}
+.mut{color:var(--muted)}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:6px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#c8410f);
+  display:grid;place-items:center;color:#fff;font-family:"Barlow Semi Condensed";font-weight:700;font-size:20px;flex:none}
+.brand h1{font-size:25px;line-height:1.05}
+.brand .sub{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;font-family:"Barlow Semi Condensed";font-weight:600}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.btn{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--ink);
+  padding:8px 13px;border-radius:9px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.12s}
+button:hover,.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.06);color:#fff}
+input[type=file]{display:none}
+.iconbtn{padding:8px 10px}
+
+.note{font-size:12.5px;color:var(--muted);margin:10px 0 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 15px;box-shadow:var(--shadow)}
+.kpi .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-family:"Barlow Semi Condensed";font-weight:600}
+.kpi .v{font-family:"Barlow Semi Condensed";font-weight:700;font-size:30px;line-height:1.05;margin-top:5px}
+.kpi .d{font-size:12px;color:var(--muted);margin-top:2px}
+.kpi.hi .v{color:var(--accent)}
+.v.good{color:var(--good)} .v.bad{color:var(--bad)}
+
+/* config */
+details.cfg{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:22px;box-shadow:var(--shadow);overflow:hidden}
+details.cfg>summary{cursor:pointer;list-style:none;padding:13px 16px;font-family:"Barlow Semi Condensed";font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:space-between}
+details.cfg>summary::-webkit-details-marker{display:none}
+details.cfg>summary .chev{transition:.2s;color:var(--muted)}
+details.cfg[open]>summary .chev{transform:rotate(180deg)}
+.cfg-body{padding:4px 16px 18px;border-top:1px solid var(--border2)}
+.cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-top:14px}
+.cfg-col h3{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:9px}
+.chk{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;font-size:13px;cursor:pointer}
+.chk:hover{background:var(--surface2)}
+.chk input{accent-color:var(--accent);width:15px;height:15px}
+.chk.saleon{color:var(--good)} .chk.reasonon{color:var(--accent)}
+.mini{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-top:6px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.field input{width:96px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit}
+.spend-tbl{width:100%;border-collapse:collapse;margin-top:6px;font-size:13px}
+.spend-tbl td{padding:4px 6px;border-bottom:1px solid var(--border2)}
+.spend-tbl input{width:90px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--ink);font:inherit;text-align:right}
+.help{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* tabs */
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:8px 15px;border-radius:9px;font-family:"Barlow Semi Condensed";font-weight:600;font-size:15px;
+  border:1px solid transparent;color:var(--muted);cursor:pointer}
+.tab.active{background:var(--surface);border-color:var(--border);color:var(--ink);box-shadow:var(--shadow)}
+
+/* table */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.tscroll{overflow-x:auto}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+table.data th,table.data td{padding:10px 12px;text-align:right;white-space:nowrap}
+table.data th{font-family:"Barlow Semi Condensed";font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0}
+table.data td{border-bottom:1px solid var(--border2)}
+table.data th.l,table.data td.l{text-align:left}
+table.data tbody tr:hover{background:var(--surface2)}
+table.data tr.total{font-weight:700}
+table.data tr.total td{border-top:2px solid var(--border);background:var(--surface2)}
+.name{font-weight:600}
+.tag{font-size:11px;color:var(--muted);font-weight:400}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.pill.g{background:var(--good-soft);color:var(--good)} .pill.w{background:var(--accent-soft);color:var(--warn)} .pill.b{background:var(--bad-soft);color:var(--bad)}
+.sale{color:var(--good);font-weight:700}
+.footnote{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6}
+.rsec{font-family:"Barlow Semi Condensed";font-weight:600;font-size:14px;color:var(--ink);padding:14px 14px 8px;border-top:1px solid var(--border2)}
+.rsec:first-child{border-top:none}
+
+/* filter bar */
+.filterbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:16px;box-shadow:var(--shadow)}
+.filterbar .flabel{font-family:"Barlow Semi Condensed";font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-right:2px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0;padding:6px 11px;font-size:13px;font-weight:600;background:transparent;color:var(--muted);border-right:1px solid var(--border2)}
+.seg button:last-child{border-right:none}
+.seg button:hover{color:var(--accent)}
+.seg button.on{background:var(--accent);color:#fff}
+.dateinp{padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--ink);font:inherit;font-size:13px}
+.msel{position:relative}
+.msel>.pill-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--ink);font-weight:600;font-size:13px;cursor:pointer}
+.msel>.pill-btn:hover{border-color:var(--accent)}
+.msel>.pill-btn .cnt{background:var(--accent);color:#fff;border-radius:20px;font-size:11px;padding:0 6px;min-width:16px;text-align:center}
+.msel>.pill-btn.act{border-color:var(--accent);color:var(--accent)}
+.pop{position:absolute;top:calc(100% + 5px);left:0;z-index:40;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px;min-width:210px;max-height:300px;overflow:auto}
+.pop .psearch{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-size:13px;margin-bottom:6px}
+.pop .opt{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;font-size:13px;cursor:pointer}
+.pop .opt:hover{background:var(--surface2)}
+.pop .opt input{accent-color:var(--accent)}
+.pop .opt .n{margin-left:auto;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.pop .prow{display:flex;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border2)}
+.pop .prow a{color:var(--accent);font-size:12px;cursor:pointer;font-weight:600}
+.flink{color:var(--muted);font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.flink:hover{color:var(--accent)}
+.fspacer{flex:1}
+.fsum{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* mapping bulk UI */
+.maptool{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border2)}
+.searchbox{flex:1;min-width:180px;position:relative}
+.searchbox input{width:100%;padding:8px 10px 8px 30px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--ink);font:inherit}
+.searchbox::before{content:"⌕";position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px}
+.progress{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.progress b{color:var(--good)}
+.bulkbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;background:var(--accent-soft);border-bottom:1px solid var(--border2)}
+.bulkbar .bt{font-size:13px;font-weight:600;color:var(--accent)}
+.bulkbar input,.bulkbar select{padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px}
+table.data td .rowchk{accent-color:var(--accent);width:15px;height:15px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:600;background:var(--surface2);border:1px solid var(--border)}
+.chip.set{background:var(--good-soft);color:var(--good);border-color:transparent}
+.chip.unset{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.mapinput{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--ink);font:inherit;font-size:13px}
+.mapinput:focus{border-color:var(--accent);outline:none}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{color:var(--accent)}
+th.son{color:var(--accent)}
+.gdoc{padding:22px 24px;max-width:860px;line-height:1.65}
+.gdoc h2{font-family:"Barlow Semi Condensed";font-weight:700;font-size:21px;margin:28px 0 10px;padding-top:18px;border-top:1px solid var(--border)}
+.gdoc h2:first-of-type{border-top:none;padding-top:0;margin-top:2px}
+.gdoc h3{font-family:"Barlow Semi Condensed";font-weight:700;font-size:16px;margin:16px 0 4px}
+.gdoc p{margin:8px 0}
+.gdoc ul{margin:8px 0;padding-left:22px}.gdoc li{margin:4px 0}
+.gdoc .lead{color:var(--muted);font-size:15px}
+.gdoc .f{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:1px 6px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px}
+.gdoc .callout{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:11px 15px;margin:14px 0;font-size:13.5px}
+.gdoc .callout.warn{border-color:var(--warn);background:var(--bad-soft)}
+.gdoc .step{display:flex;gap:12px;align-items:flex-start;margin:10px 0}
+.gdoc .step .num{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:"Barlow Semi Condensed";font-weight:700;font-size:14px}
+.gdoc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+.gdoc th,.gdoc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border2);vertical-align:top}
+.gdoc th{font-family:"Barlow Semi Condensed";font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:var(--surface2)}
+.gdoc td:last-child{min-width:220px}
+@media (max-width:560px){.brand h1{font-size:21px}.kpi .v{font-size:25px}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="mark">IA</div>
+      <div><h1>Разбор направлений</h1><div class="sub">Invictus · воронка из amoCRM</div></div>
+    </div>
+    <div class="ctrls">
+      <label class="btn primary">⬆ Лиды (amoCRM)<input type="file" id="file" accept=".csv,.xlsx,.xls"></label>
+      <label class="btn">⬆ Расход (FB)<input type="file" id="fbfile" accept=".csv,.xlsx,.xls"></label>
+      <label class="btn">⬆ Оплаты<input type="file" id="payfile" accept=".csv,.xlsx,.xls"></label>
+      <button id="dl">⬇ CSV отчёта</button>
+      <button id="theme" class="iconbtn" title="Тема">◐</button>
+    </div>
+  </div>
+  <div class="note"><span class="dot"></span><span id="src">Загружен пример: выгрузка 1–8 сентября (603 лида). Загрузите свою выгрузку, чтобы пересчитать.</span></div>
+  <div class="note" style="margin-top:-14px"><span class="dot" style="background:var(--accent)"></span><span id="fbsrc">Расход — из предзаполненных значений периода. Загрузите выгрузку FB (уровень «Кампания»), чтобы подтянуть автоматически по utm_medium.</span></div>
+  <div class="note" style="margin-top:-14px"><span class="dot" style="background:var(--good)"></span><span id="paysrc">Оплаты — пример за 1–8 сентября (28 сделок сошлись по ID). Загрузите таблицу оплат, чтобы сверить по ID сделки.</span></div>
+
+  <div class="filterbar" id="filterbar"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <details class="cfg" id="cfg">
+    <summary><span>⚙ Настройки: этапы, причины, расходы</span><span class="chev">▾</span></summary>
+    <div class="cfg-body">
+      <div class="mini">
+        <div class="field"><label>Курс ₸/$</label><input id="rate" type="number" step="1" value="465"></div>
+        <div class="field"><label>Дней в периоде</label><input id="days" type="number" step="1" value="8"></div>
+        <div class="help">Расход берётся из рекламных кабинетов — в выгрузке CRM его нет. Задайте ниже по каждому utm_medium.</div>
+      </div>
+      <div class="cfg-grid">
+        <div class="cfg-col"><h3>Этапы = квал</h3><div id="qStages"></div></div>
+        <div class="cfg-col"><h3>Этапы = продажа</h3><div id="sStages"></div></div>
+        <div class="cfg-col"><h3>Причины закрытия → квал</h3><div id="qReasons"></div></div>
+        <div class="cfg-col"><h3>Расход по utm_medium, $</h3><div class="tscroll"><table class="spend-tbl"><tbody id="spendRows"></tbody></table></div></div>
+      </div>
+    </div>
+  </details>
+
+  <div class="tabs">
+    <div class="tab active" data-t="recon">Сверка 3 источников</div>
+    <div class="tab" data-t="dir">По направлениям</div>
+    <div class="tab" data-t="med">По utm_medium</div>
+    <div class="tab" data-t="fb">Реклама (FB)</div>
+    <div class="tab" data-t="geo">Города и языки</div>
+    <div class="tab" data-t="map">Маппинг</div>
+    <div class="tab" data-t="guide">📘 Инструкция</div>
+  </div>
+  <div class="card tscroll" id="panel"></div>
+  <div class="footnote" id="foot"></div>
+</div>
+
+<script>
+const SAMPLE = [{"id": "31363649", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31363629", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast3", "src": "fb_tz", "c": "Астана", "l": "Казахский", "d": "2026-09-08"}, {"id": "31363625", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-08"}, {"id": "31363469", "st": "Закрыто и не реализовано (Думал что бесплатно)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31363441", "st": "новый лид", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31363439", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31363357", "st": "новый лид", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31363269", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31363219", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31363217", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31363167", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31363025", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31363001", "st": "Нд-1", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-08"}, {"id": "31362993", "st": "новый лид", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31362965", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31362639", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-08"}, {"id": "31362599", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31362575", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31362459", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31362377", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31362273", "st": "предоплата / тРАНШЕВАЯ ОПЛАТА", "rs": "", "b": 10000.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31362271", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz3", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-08"}, {"id": "31362241", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Костанай", "l": "Русский", "d": "2026-09-08"}, {"id": "31362231", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31362199", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31362195", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31362115", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz3", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-08"}, {"id": "31361011", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-08"}, {"id": "31360985", "st": "Успешно реализовано", "rs": "", "b": 175000.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31360787", "st": "Нд-1", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-08"}, {"id": "31360749", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31360643", "st": "нд-2", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-08"}, {"id": "31360629", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-08"}, {"id": "31360429", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31360411", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31360387", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31360285", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31360237", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "TZ_kaz", "cmp": "Shym_ала", "src": "fb_tz", "c": "Туркестан", "l": "", "d": "2026-09-08"}, {"id": "31360179", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31360167", "st": "Закрыто и не реализовано", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31360137", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Шымкент", "l": "Русский", "d": "2026-09-08"}, {"id": "31360101", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31360001", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31359993", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31359983", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31359959", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31359887", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Кызылорда", "l": "Казахский", "d": "2026-09-08"}, {"id": "31359875", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31359749", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31359685", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31359635", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31359591", "st": "Наработка", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31359553", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31359531", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31359479", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31359435", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31359377", "st": "Успешно реализовано", "rs": "", "b": 359000.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-08"}, {"id": "31359249", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31359129", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "Алматы", "l": "Казахский", "d": "2026-09-08"}, {"id": "31359063", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast9", "src": "fb_gp", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-08"}, {"id": "31359043", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31359033", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358963", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31358833", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31358805", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31358799", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz2", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-08"}, {"id": "31358783", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31358733", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as9", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31358723", "st": "нд-2", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358709", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 230000.0, "m": "келесу", "cmp": "", "src": "", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31358651", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "TZ_kaz", "cmp": "Shym_ала", "src": "fb_tz", "c": "Алматы", "l": "Казахский", "d": "2026-09-08"}, {"id": "31358617", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31358565", "st": "Нд-1", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-08"}, {"id": "31358553", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "TZ_kaz", "cmp": "Shym_ала", "src": "fb_tz", "c": "Алматы", "l": "Казахский", "d": "2026-09-08"}, {"id": "31358551", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358501", "st": "Нд-1", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-08"}, {"id": "31358497", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Усть-Каменогорск", "l": "Русский", "d": "2026-09-08"}, {"id": "31358493", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31358491", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Казахский", "d": "2026-09-08"}, {"id": "31358431", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358265", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358251", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31358187", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31358179", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Шымкент", "l": "Казахский", "d": "2026-09-08"}, {"id": "31358175", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31358037", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31358031", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357995", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357959", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31357957", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31357951", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31357887", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357863", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357861", "st": "Нд-1", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357827", "st": "Наработка", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357789", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357767", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357755", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357699", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357615", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Тараз", "l": "", "d": "2026-09-08"}, {"id": "31357563", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as8", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357545", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz2", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31357537", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Астана", "l": "Казахский", "d": "2026-09-08"}, {"id": "31357487", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357471", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357437", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31357405", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357387", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast8", "src": "fb_gp", "c": "Кокшетау", "l": "", "d": "2026-09-08"}, {"id": "31357335", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-08"}, {"id": "31357315", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-08"}, {"id": "31357293", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as9", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357265", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-08"}, {"id": "31357247", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31357221", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357215", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31357211", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-08"}, {"id": "31357173", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-08"}, {"id": "31357161", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-08"}, {"id": "31357155", "st": "Нд-1", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-08"}, {"id": "31357025", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31356921", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31356869", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31356747", "st": "Нд-1", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31356719", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31356633", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31356567", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31356561", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-07"}, {"id": "31356463", "st": "Нд-1", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31356455", "st": "Нд-1", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31356359", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31356199", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-07"}, {"id": "31356155", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31356137", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31356121", "st": "Нд-1", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31356081", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31356051", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-07"}, {"id": "31355645", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31355529", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31355447", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31355151", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31354779", "st": "Нд-1", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31354649", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31354493", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Атырау", "l": "Русский", "d": "2026-09-07"}, {"id": "31354157", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31354153", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31354151", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31354099", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353849", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353843", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-07"}, {"id": "31353757", "st": "Успешно реализовано", "rs": "", "b": 400000.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353745", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353629", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-07"}, {"id": "31353565", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353473", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31353179", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353167", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31353147", "st": "Успешно реализовано", "rs": "", "b": 510000.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31353059", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31353049", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31352835", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31352737", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31352693", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-07"}, {"id": "31352615", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31352541", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "", "l": "", "d": "2026-09-07"}, {"id": "31352511", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31352503", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31352499", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31352489", "st": "нд-2", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-07"}, {"id": "31352079", "st": "Закрыто и не реализовано (ЛПР НЕ ДАЛ СОГЛАСИЕ)", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-07"}, {"id": "31352073", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "Туркестан", "l": "Русский", "d": "2026-09-07"}, {"id": "31352031", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31351989", "st": "Закрыто и не реализовано (Думал что бесплатно)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz2", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-07"}, {"id": "31351961", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31351701", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31351669", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "Video_lesson", "cmp": "Шир_4города", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-07"}, {"id": "31351657", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31351647", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31351601", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Караганда", "l": "", "d": "2026-09-07"}, {"id": "31351599", "st": "нд-2", "rs": "", "b": 0.0, "m": "Video_lesson", "cmp": "Шир_4города", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-07"}, {"id": "31351555", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz3", "src": "fb_tz", "c": "Караганда", "l": "", "d": "2026-09-07"}, {"id": "31351477", "st": "Закрыто и не реализовано (нецелевой)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-07"}, {"id": "31351453", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Костанай", "l": "Русский", "d": "2026-09-07"}, {"id": "31351447", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31351445", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Караганда", "l": "Русский", "d": "2026-09-07"}, {"id": "31351439", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-07"}, {"id": "31351391", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "Video_lesson", "cmp": "Шир_4города2", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-07"}, {"id": "31351369", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31351343", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31351335", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz2", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-07"}, {"id": "31351323", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31351317", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31351281", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast7", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31351255", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31351193", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31351189", "st": "Нд-1", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31351161", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31351081", "st": "нд-2", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31351045", "st": "Закрыто и не реализовано (нецелевой)", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31350993", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-07"}, {"id": "31350979", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-07"}, {"id": "31350951", "st": "Нд-1", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_as5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-07"}, {"id": "31350919", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31350913", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31350859", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31350845", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-07"}, {"id": "31350741", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-07"}, {"id": "31350687", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-07"}, {"id": "31350673", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31350641", "st": "Наработка", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31350625", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-07"}, {"id": "31350607", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-07"}, {"id": "31350585", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-07"}, {"id": "31350547", "st": "Закрыто и не реализовано (нецелевой)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Кокшетау", "l": "", "d": "2026-09-06"}, {"id": "31350539", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31350493", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-06"}, {"id": "31350491", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31350487", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31350397", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast3", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31350371", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Тараз", "l": "", "d": "2026-09-06"}, {"id": "31350365", "st": "Успешно реализовано", "rs": "", "b": 150000.0, "m": "karShym_september", "cmp": "tz", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-06"}, {"id": "31350341", "st": "нд-2", "rs": "", "b": 0.0, "m": "karShym_september", "cmp": "tz2", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-06"}, {"id": "31350325", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "september_tz", "cmp": "ala_ast2", "src": "fb_tz", "c": "Алматы", "l": "", "d": "2026-09-06"}, {"id": "31350315", "st": "Закрыто и не реализовано (Неправильный номер)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-06"}, {"id": "31350287", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31350181", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31350177", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31350175", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31350099", "st": "нд-2", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31350097", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31350081", "st": "нд-2", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-06"}, {"id": "31350047", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31350009", "st": "нд-2", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31349979", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-06"}, {"id": "31349959", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31349819", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31349693", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31349629", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31349531", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31349525", "st": "Наработка", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Костанай", "l": "Русский", "d": "2026-09-06"}, {"id": "31349419", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31349253", "st": "нд-2", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-06"}, {"id": "31349197", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31349189", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31349117", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31349009", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31348919", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "chatgpt.com", "c": "", "l": "", "d": "2026-09-06"}, {"id": "31348703", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31348533", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31348367", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31348263", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-06"}, {"id": "31348231", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31348137", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Шымкент", "l": "Русский", "d": "2026-09-06"}, {"id": "31348133", "st": "нд-2", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-06"}, {"id": "31348047", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31347681", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "", "d": "2026-09-06"}, {"id": "31347637", "st": "Наработка", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31347573", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31347555", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31347507", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-06"}, {"id": "31347491", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31347441", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Усть-Каменогорск", "l": "Русский", "d": "2026-09-06"}, {"id": "31347349", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Астана", "l": "", "d": "2026-09-06"}, {"id": "31347325", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31347219", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31346925", "st": "нд-2", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-06"}, {"id": "31346831", "st": "Успешно реализовано", "rs": "", "b": 400000.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-06"}, {"id": "31346587", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-06"}, {"id": "31346567", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-06"}, {"id": "31346487", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Казахский", "d": "2026-09-06"}, {"id": "31346257", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31346023", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-06"}, {"id": "31345975", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-06"}, {"id": "31345957", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-06"}, {"id": "31345857", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31345657", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31345647", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-05"}, {"id": "31345507", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-05"}, {"id": "31345481", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31345451", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31345022", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31345014", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-05"}, {"id": "31344964", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-05"}, {"id": "31344960", "st": "нд-2", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31344866", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Тараз", "l": "Казахский", "d": "2026-09-05"}, {"id": "31344634", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-05"}, {"id": "31343894", "st": "Успешно реализовано", "rs": "", "b": 400000.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-05"}, {"id": "31343712", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-05"}, {"id": "31343688", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31343609", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-05"}, {"id": "31343593", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-05"}, {"id": "31343579", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-05"}, {"id": "31343553", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-05"}, {"id": "31343365", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Костанай", "l": "Русский", "d": "2026-09-05"}, {"id": "31342899", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-05"}, {"id": "31342863", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31342765", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-05"}, {"id": "31342697", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31342665", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Караганда", "l": "", "d": "2026-09-05"}, {"id": "31342579", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-05"}, {"id": "31342527", "st": "Нд-1", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31342517", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31342435", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Семей", "l": "Русский", "d": "2026-09-05"}, {"id": "31342359", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "bust_plus_1307", "cmp": "kz_wide", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-05"}, {"id": "31342259", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31342187", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-05"}, {"id": "31341349", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-05"}, {"id": "31341341", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-05"}, {"id": "31341221", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-05"}, {"id": "31341217", "st": "Наработка", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Тараз", "l": "Русский", "d": "2026-09-05"}, {"id": "31341009", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31340939", "st": "Наработка", "rs": "", "b": 0.0, "m": "free", "cmp": "oct_story", "src": "wpp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31340933", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31340837", "st": "нд-2", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31340703", "st": "Закрыто и не реализовано (нецелевой)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-04"}, {"id": "31340675", "st": "Нд-1", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-04"}, {"id": "31340571", "st": "Наработка", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31340417", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-04"}, {"id": "31339941", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31339931", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31339901", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-04"}, {"id": "31339843", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31339677", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31339621", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31339609", "st": "Закрыто и не реализовано (Отказ рассрочки от банка)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-04"}, {"id": "31338507", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31338397", "st": "Закрыто и не реализовано (Не оставлял заявку)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31338341", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31338217", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Другой", "l": "", "d": "2026-09-04"}, {"id": "31338019", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 440000.0, "m": "келесу", "cmp": "", "src": "", "c": "Талдыкорган", "l": "", "d": "2026-09-04"}, {"id": "31338009", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31337723", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-04"}, {"id": "31337487", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-04"}, {"id": "31337219", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Атырау", "l": "Русский", "d": "2026-09-04"}, {"id": "31337049", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31337047", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31336927", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31336839", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31336833", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-04"}, {"id": "31336825", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-04"}, {"id": "31336815", "st": "Наработка", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31336783", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31336685", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-04"}, {"id": "31336339", "st": "Успешно реализовано", "rs": "", "b": 150000.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_gp", "c": "Кокшетау", "l": "Русский", "d": "2026-09-04"}, {"id": "31335755", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-04"}, {"id": "31335589", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-04"}, {"id": "31335567", "st": "Нд-1", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-04"}, {"id": "31335537", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-04"}, {"id": "31335471", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-04"}, {"id": "31335469", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-04"}, {"id": "31335467", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-04"}, {"id": "31335425", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-04"}, {"id": "31335315", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-04"}, {"id": "31335225", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31335165", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-04"}, {"id": "31335043", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31335033", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "taplink", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31335019", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31335003", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31334989", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31334961", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31334941", "st": "Успешно реализовано", "rs": "", "b": 360000.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31334923", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31334911", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-03"}, {"id": "31334883", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31334815", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31334809", "st": "нд-2", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31334801", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31334711", "st": "Успешно реализовано", "rs": "", "b": 400000.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31334637", "st": "Закрыто и не реализовано (Думал что бесплатно)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-03"}, {"id": "31334617", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31334549", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Костанай", "l": "Русский", "d": "2026-09-03"}, {"id": "31334507", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31334499", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31334473", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31334411", "st": "Закрыто и не реализовано (Оффлайн практика в другом городе(с примечанием))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Актобе", "l": "Русский", "d": "2026-09-03"}, {"id": "31334259", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-03"}, {"id": "31334213", "st": "нд-2", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-03"}, {"id": "31334187", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31334115", "st": "Закрыто и не реализовано (Выбрали других)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31334105", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31334071", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31334053", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31333921", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-03"}, {"id": "31333779", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Костанай", "l": "Русский", "d": "2026-09-03"}, {"id": "31333727", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31333641", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31333617", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-03"}, {"id": "31333591", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Жезказган", "l": "Русский", "d": "2026-09-03"}, {"id": "31333493", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31333481", "st": "Наработка", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31333401", "st": "Успешно реализовано", "rs": "", "b": 100000.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31333281", "st": "Успешно реализовано", "rs": "", "b": 100000.0, "m": "абмассадор", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31333245", "st": "Наработка", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Костанай", "l": "Русский", "d": "2026-09-03"}, {"id": "31333243", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Караганда", "l": "Русский", "d": "2026-09-03"}, {"id": "31332997", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31332991", "st": "Наработка", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31332987", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "", "l": "", "d": "2026-09-03"}, {"id": "31332807", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31332753", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31332699", "st": "Закрыто и не реализовано (Неправильный номер)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31332639", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-03"}, {"id": "31332561", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31332557", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31332539", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31332421", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31332387", "st": "предоплата / тРАНШЕВАЯ ОПЛАТА", "rs": "", "b": 200000.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31332161", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31332115", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31332057", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31331973", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31331969", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31331967", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31331855", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-03"}, {"id": "31331787", "st": "Успешно реализовано", "rs": "", "b": 350000.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31331703", "st": "нд-2", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-03"}, {"id": "31331697", "st": "Успешно реализовано", "rs": "", "b": 250000.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Актау", "l": "Русский", "d": "2026-09-03"}, {"id": "31331515", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31331469", "st": "Закрыто и не реализовано (Оффлайн практика в другом городе(с примечанием))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Караганда", "l": "Русский", "d": "2026-09-03"}, {"id": "31331053", "st": "Наработка", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31331043", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Караганда", "l": "Казахский", "d": "2026-09-03"}, {"id": "31330991", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31330883", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-03"}, {"id": "31330787", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31330719", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-03"}, {"id": "31330589", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 350000.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31330477", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31330453", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Рудный", "l": "Русский", "d": "2026-09-03"}, {"id": "31330423", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31330387", "st": "Успешно реализовано", "rs": "", "b": 175000.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31330221", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31330111", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31329981", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Тараз", "l": "Русский", "d": "2026-09-03"}, {"id": "31329979", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-03"}, {"id": "31329803", "st": "Наработка", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31329773", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31329771", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-03"}, {"id": "31329591", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Казахский", "d": "2026-09-03"}, {"id": "31329393", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31329253", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-03"}, {"id": "31329245", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31329199", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31329123", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-03"}, {"id": "31329047", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31329031", "st": "Наработка", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-03"}, {"id": "31329015", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31328957", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-03"}, {"id": "31328943", "st": "Закрыто и не реализовано (Думал что бесплатно)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-03"}, {"id": "31328923", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-03"}, {"id": "31328843", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-03"}, {"id": "31328775", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Другой", "l": "", "d": "2026-09-02"}, {"id": "31328773", "st": "Успешно реализовано", "rs": "", "b": 490000.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31328539", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31328521", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Казахский", "d": "2026-09-02"}, {"id": "31328389", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31328303", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31328133", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-02"}, {"id": "31327993", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31327943", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31327865", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Тараз", "l": "Русский", "d": "2026-09-02"}, {"id": "31327797", "st": "Закрыто и не реализовано (Тест)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31327755", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh9", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-02"}, {"id": "31327705", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31327663", "st": "Закрыто и не реализовано (Неправильный номер)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31326709", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31326671", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31326657", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Караганда", "l": "Русский", "d": "2026-09-02"}, {"id": "31326651", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Темиртау", "l": "Русский", "d": "2026-09-02"}, {"id": "31326641", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31326511", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31326287", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-02"}, {"id": "31326263", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31326219", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31326153", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Караганда", "l": "", "d": "2026-09-02"}, {"id": "31325911", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "Сарафанка", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31325347", "st": "Закрыто и не реализовано (Выбрали других)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31325253", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31325237", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Казахский", "d": "2026-09-02"}, {"id": "31325135", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-02"}, {"id": "31325131", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31325127", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31325121", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-02"}, {"id": "31325097", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-02"}, {"id": "31324961", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31324343", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31324329", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31324289", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31324223", "st": "Успешно реализовано", "rs": "", "b": 360000.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31324209", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31323903", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "{{campaign.name}}", "cmp": "{{adset.name}}", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31323791", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh4", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31323769", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "", "l": "", "d": "2026-09-02"}, {"id": "31323765", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Усть-Каменогорск", "l": "", "d": "2026-09-02"}, {"id": "31323639", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31323609", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Усть-Каменогорск", "l": "Русский", "d": "2026-09-02"}, {"id": "31323475", "st": "Успешно реализовано", "rs": "", "b": 230000.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31323407", "st": "Успешно реализовано", "rs": "", "b": 250000.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Темиртау", "l": "Русский", "d": "2026-09-02"}, {"id": "31323361", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31323357", "st": "Закрыто и не реализовано (Выбрали других)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31323003", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31322841", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-02"}, {"id": "31322823", "st": "нд-2", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31322817", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31322749", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31322641", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31322523", "st": "Закрыто и не реализовано (Выбрали других)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-02"}, {"id": "31322347", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-02"}, {"id": "31322165", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31322121", "st": "Счет выставлен", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Караганда", "l": "Русский", "d": "2026-09-02"}, {"id": "31321939", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31321933", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-02"}, {"id": "31321911", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-02"}, {"id": "31321757", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Жезказган", "l": "Русский", "d": "2026-09-01"}, {"id": "31321451", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31321257", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31321215", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31321213", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31321211", "st": "Закрыто и не реализовано (Отказ рассрочки от банка)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31321165", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31321055", "st": "Закрыто и не реализовано (Выбрали других)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31320961", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-01"}, {"id": "31320833", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31320747", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31320653", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31320549", "st": "Закрыто и не реализовано (Думала что это зал Инвиктус)", "rs": "", "b": 0.0, "m": "абмассадор", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31320505", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-01"}, {"id": "31320077", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31319845", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31319755", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-01"}, {"id": "31319721", "st": "Успешно реализовано", "rs": "", "b": 490000.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31319643", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31319469", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31319401", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-01"}, {"id": "31319125", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31318859", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31318421", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31318347", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31318125", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31317979", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh11", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31317791", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31317777", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-01"}, {"id": "31317541", "st": "Закрыто и не реализовано (Хочет работу)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31317527", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31317517", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31317497", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31317483", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "директ", "cmp": "", "src": "", "c": "Без города", "l": "", "d": "2026-09-01"}, {"id": "31317403", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31317369", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-01"}, {"id": "31317147", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31317021", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31316935", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31316861", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31316679", "st": "Закрыто и не реализовано (уже обучается)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "chatgpt.com", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31316527", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31316495", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31316471", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31316457", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31316439", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31316277", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31316215", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31316099", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31316057", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "Bust_plus_1307", "cmp": "Kz_wide", "src": "fb_tz", "c": "Актобе", "l": "Казахский", "d": "2026-09-01"}, {"id": "31315951", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31315923", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31315893", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast3", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31315857", "st": "Закрыто и не реализовано (нецелевой)", "rs": "", "b": 0.0, "m": "tz_stazh", "cmp": "квал5", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31315749", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bust_plus_1307", "cmp": "Kz_wide", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31315717", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Талдыкорган", "l": "Русский", "d": "2026-09-01"}, {"id": "31315691", "st": "Нд-1", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31315641", "st": "Успешно реализовано", "rs": "", "b": 350000.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31315617", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31315537", "st": "нд-2", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31315387", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31315385", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31315381", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "tz_july", "cmp": "квал3", "src": "fb_tz", "c": "", "l": "Қазақ тілі", "d": "2026-09-01"}, {"id": "31315347", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Астана", "l": "Казахский", "d": "2026-09-01"}, {"id": "31315257", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "Bust_plus_1307", "cmp": "Kz_wide", "src": "fb_tz", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31315219", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31315155", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31315153", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31315147", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "Другое(Комментарии)", "l": "Русский", "d": "2026-09-01"}, {"id": "31314961", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314951", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314925", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31314849", "st": "Отказ банка", "rs": "", "b": 0.0, "m": "Bust_plus_1307", "cmp": "Kz_wide", "src": "fb_tz", "c": "Атырау", "l": "Русский", "d": "2026-09-01"}, {"id": "31314839", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31314833", "st": "Закрыто и не реализовано (Пропала потребность)", "rs": "", "b": 0.0, "m": "сайт_органика", "cmp": "", "src": "", "c": "", "l": "", "d": "2026-09-01"}, {"id": "31314809", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31314737", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "Bestseller_oldbutgold", "cmp": "cтат7", "src": "fb_tz", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314705", "st": "Закрыто и не реализовано (Гасится)", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Shymkent_2", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-01"}, {"id": "31314673", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "Кокшетау", "l": "Русский", "d": "2026-09-01"}, {"id": "31314659", "st": "Закрыто и не реализовано (Неправильный номер)", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31314635", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Алматы", "l": "", "d": "2026-09-01"}, {"id": "31314599", "st": "предоплата / тРАНШЕВАЯ ОПЛАТА", "rs": "", "b": 175000.0, "m": "Leads_GP_07.07", "cmp": "Ala_Ast_9", "src": "fb_gp", "c": "Темиртау", "l": "Русский", "d": "2026-09-01"}, {"id": "31314583", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "ГП_бестселлер", "cmp": "Шир_10", "src": "FB", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31314575", "st": "Закрыто и не реализовано (Тотальный недозвон)", "rs": "", "b": 0.0, "m": "august_tz", "cmp": "ala_ast_stazh12", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31314545", "st": "Закрыто и не реализовано (Дубль)", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast2", "src": "fb_gp", "c": "Астана", "l": "", "d": "2026-09-01"}, {"id": "31314539", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Астана", "l": "Русский", "d": "2026-09-01"}, {"id": "31314535", "st": "Закрыто и не реализовано (Дорого (не смог продать))", "rs": "", "b": 0.0, "m": "plan_august_tz", "cmp": "Kar_Shym3", "src": "fb_tz", "c": "", "l": "Русский", "d": "2026-09-01"}, {"id": "31314487", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "Bust_plus_1307", "cmp": "Kz_wide", "src": "fb_tz", "c": "Шымкент", "l": "Русский", "d": "2026-09-01"}, {"id": "31314485", "st": "Закрыто и не реализовано (В следующий раз)", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "Ala_Ast_9", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314475", "st": "Оффер озвучен + дедлайн", "rs": "", "b": 0.0, "m": "Leads_GP_07.07", "cmp": "август_квал", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314457", "st": "Взят в работу", "rs": "", "b": 0.0, "m": "gp_augistin", "cmp": "Ala_ast", "src": "fb_gp", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}, {"id": "31314449", "st": "Закрыто и не реализовано (Пропала потребность (сразу))", "rs": "", "b": 0.0, "m": "social", "cmp": "", "src": "ig", "c": "Алматы", "l": "Русский", "d": "2026-09-01"}];
+const PAYSAMPLE = [{"id": "31324223", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 360000.0, "contract": 360000.0, "date": "2026-09-03", "ptypes": ["Полная оплата"]}, {"id": "31323407", "city": "Темиртау", "pkg": "Career boost +(Red)", "paid": 250000.0, "contract": 250000.0, "date": "2026-09-03", "ptypes": ["Полная оплата"]}, {"id": "31333281", "city": "Алматы", "pkg": "Career boost +(Red)", "paid": 100000.0, "contract": 100000.0, "date": "2026-09-01", "ptypes": ["Полная оплата"]}, {"id": "31333401", "city": "Алматы", "pkg": "Career boost +(Red)", "paid": 100000.0, "contract": 100000.0, "date": "2026-09-01", "ptypes": ["Полная оплата"]}, {"id": "31330387", "city": "Алматы", "pkg": "", "paid": 175000.0, "contract": 250000.0, "date": "2026-09-02", "ptypes": ["Полная оплата"]}, {"id": "31328773", "city": "Алматы", "pkg": "BALANCE Стретчинг + Пилатес", "paid": 490000.0, "contract": 490000.0, "date": "2026-09-03", "ptypes": ["Полная оплата"]}, {"id": "31331697", "city": "Актау", "pkg": "Career boost +(Red)", "paid": 250000.0, "contract": 250000.0, "date": "2026-09-03", "ptypes": ["Полная оплата"]}, {"id": "31332387", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 200000.0, "contract": 400000.0, "date": "2026-09-03", "ptypes": ["Траншевая оплата (1-й транш)"]}, {"id": "31334941", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 360000.0, "contract": 360000.0, "date": "2026-09-04", "ptypes": ["Траншевая оплата (1-й транш)", "Доплата (доплатили последний остаток)"]}, {"id": "31334711", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 400000.0, "contract": 400000.0, "date": "2026-09-04", "ptypes": ["Полная оплата"]}, {"id": "31331787", "city": "Алматы", "pkg": "Стретчинг ГП КОМБИ", "paid": 350000.0, "contract": 350000.0, "date": "2026-09-06", "ptypes": ["Полная оплата"]}, {"id": "31319721", "city": "Астана", "pkg": "BALANCE Стретчинг + Йога", "paid": 490000.0, "contract": 490000.0, "date": "2026-09-06", "ptypes": ["Полная оплата"]}, {"id": "31343894", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 400000.0, "contract": 400000.0, "date": "2026-09-07", "ptypes": ["Полная оплата"]}, {"id": "31353147", "city": "Алматы", "pkg": "Career boost PRO+", "paid": 510000.0, "contract": 510000.0, "date": "2026-09-04", "ptypes": ["Полная оплата"]}, {"id": "31336339", "city": "Кокшетау", "pkg": "Стретчинг ГП", "paid": 150000.0, "contract": 150000.0, "date": "2026-09-04", "ptypes": ["Полная оплата"]}, {"id": "31353757", "city": "Астана", "pkg": "Career boost КОМБИ", "paid": 400000.0, "contract": 400000.0, "date": "2026-09-07", "ptypes": ["Полная оплата"]}, {"id": "31323475", "city": "Астана", "pkg": "Career boost +(Red)", "paid": 230000.0, "contract": 250000.0, "date": "2026-09-07", "ptypes": ["Полная оплата"]}, {"id": "31315641", "city": "Алматы", "pkg": "Йога КОМБИ", "paid": 350000.0, "contract": 350000.0, "date": "2026-09-08", "ptypes": ["Полная оплата"]}, {"id": "31359377", "city": "Шымкент", "pkg": "Career boost КОМБИ", "paid": 400000.0, "contract": 400000.0, "date": "2026-09-10", "ptypes": ["Траншевая оплата (1-й транш)", "Траншевая оплата (2-й транш)"]}, {"id": "31346831", "city": "Караганды", "pkg": "Career boost КОМБИ", "paid": 400000.0, "contract": 400000.0, "date": "2026-09-08", "ptypes": ["Полная оплата"]}, {"id": "31360985", "city": "Алматы", "pkg": "Career boost +(Red)", "paid": 175000.0, "contract": 175000.0, "date": "2026-09-08", "ptypes": ["Полная оплата"]}, {"id": "31362273", "city": "Алматы", "pkg": "Стретчинг ГП КОМБИ", "paid": 10000.0, "contract": 315000.0, "date": "2026-09-08", "ptypes": ["Предоплата"]}, {"id": "31314599", "city": "Темиртау", "pkg": "Career boost КОМБИ", "paid": 175000.0, "contract": 400000.0, "date": "2026-09-08", "ptypes": ["Траншевая оплата (1-й транш)"]}, {"id": "31362199", "city": "Астана", "pkg": "Силовые и функциональные ГП КОМБИ", "paid": 315000.0, "contract": 315.0, "date": "2026-09-09", "ptypes": ["Полная оплата"]}, {"id": "31358963", "city": "Астана", "pkg": "BALANCE Стретчинг + Йога", "paid": 450000.0, "contract": 450000.0, "date": "2026-09-09", "ptypes": ["Полная оплата"]}, {"id": "31358833", "city": "Алматы", "pkg": "Йога КОМБИ", "paid": 350000.0, "contract": 350000.0, "date": "2026-09-09", "ptypes": ["Полная оплата"]}, {"id": "31356359", "city": "Алматы", "pkg": "Career boost КОМБИ", "paid": 5000.0, "contract": 360000.0, "date": "2026-09-11", "ptypes": ["Предоплата"]}, {"id": "31355645", "city": "Астана", "pkg": "Career boost PRO+", "paid": 530000.0, "contract": 550000.0, "date": "2026-09-11", "ptypes": ["Полная оплата"]}];
+
+/* ---------- defaults (из твоего конфига) ---------- */
+const norm = s => (s==null?'':String(s)).toLowerCase().replace(/\s+/g,' ').trim();
+const DEF_QUAL_STAGES = ['ответилил на рассылку','ответил на рассылку','оффер озвучен + дедлайн','наработка','счет выставлен','счёт выставлен','отказ банка','предоплата / траншевая оплата','успешно реализовано'];
+const DEF_SALE_STAGES = ['предоплата / траншевая оплата','успешно реализовано'];
+const DEF_QUAL_REASONS = ['дорого (не смог продать)','пропала потребность','в следующий раз','гасится','выбрали других','отказ рассрочки от банка'];
+const DIR_MAP = {'september_tz':'ТЗ','august_tz':'ТЗ','tz_stazh':'ТЗ','tz_july':'ТЗ','bestseller_oldbutgold':'ТЗ',
+ 'gp_augistin':'ГП','leads_gp_07.07':'ГП','гп_бестселлер':'ГП',
+ 'karshym_september':'ТЗ_Кар_Шым','plan_august_tz':'ТЗ_Кар_Шым','tz_kaz':'ТЗ_каз','bust_plus_1307':'Bust_plus'};
+const SPEND_DEF = {'september_tz':226.01,'august_tz':510.29,'tz_stazh':159.95,'tz_july':108.22,'bestseller_oldbutgold':53.28,
+ 'gp_augistin':665.62,'leads_gp_07.07':31.89,'гп_бестселлер':6.03,'karshym_september':178.00,'plan_august_tz':135.54,
+ 'tz_kaz':18.69,'bust_plus_1307':10.70,'директ':19.51};
+
+/* ---------- state ---------- */
+let records = SAMPLE.slice();
+let cfg = load('cfg_v1', {qs:DEF_QUAL_STAGES,ss:DEF_SALE_STAGES,qr:DEF_QUAL_REASONS,rate:465,days:8,spend:{},map:{},pkgmap:{}});
+if(!cfg.map)cfg.map={}; if(!cfg.pkgmap)cfg.pkgmap={};
+let curTab='recon';
+let fbData={}, fbLoaded=false, fbCur='usd', fbName='';
+let reconSeg=false;
+function setReconSeg(v){reconSeg=v;renderPanel();}
+let payMap={}, payLoaded=false, payName='', paySample=true;
+PAYSAMPLE.forEach(p=>{payMap[p.id]=p;}); payLoaded=true; // демо-оплаты за 1–8 сентября
+let flt={preset:'all',from:'',to:'',dirs:[],cities:[],sources:[]};
+let DATA=records.slice();
+function filtered(){
+  return records.filter(r=>{
+    if(flt.from && (!r.d || r.d<flt.from)) return false;
+    if(flt.to && (!r.d || r.d>flt.to)) return false;
+    if(flt.dirs.length && flt.dirs.indexOf(dirOf(r.m))<0) return false;
+    if(flt.cities.length && flt.cities.indexOf(cityBucket(r.c))<0) return false;
+    if(flt.sources.length && flt.sources.indexOf(((r.src||'').trim())||'(нет)')<0) return false;
+    return true;
+  });
+}
+function distinctDays(rs){const s={};for(const r of rs){if(r.d)s[r.d]=1;}return Object.keys(s).length;}
+function activeFilterCount(){return (flt.from||flt.to?1:0)+(flt.dirs.length?1:0)+(flt.cities.length?1:0)+(flt.sources.length?1:0);}
+
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(){try{localStorage.setItem('cfg_v1',JSON.stringify(cfg))}catch(e){}}
+
+/* ---------- helpers ---------- */
+function baseStage(st){const n=norm(st);return n.startsWith('закрыто и не реализовано')?'закрыто и не реализовано':n;}
+function reasonOf(r){const n=norm(r.st);const m=n.match(/^закрыто и не реализовано\s*\((.*)\)\s*$/);return m?m[1].trim():norm(r.rs);}
+function dirOf(m){const n=norm(m);if(cfg.map&&cfg.map[n]&&cfg.map[n].dir)return cfg.map[n].dir;return DIR_MAP[n]|| (m!=null&&String(m).trim()) || '(без метки)';}
+function planCity(m){const n=norm(m);return (cfg.map&&cfg.map[n]&&cfg.map[n].city)||'';}
+function guessCity(m){const n=norm(m);if(n.includes('karshym')||n.includes('kar')||n.includes('шым'))return 'Караганда/Шымкент';if(n.includes('ala')||n.includes('алмат')||n.includes('аст'))return 'Алматы/Астана';return '';}
+function fbOf(m){const n=norm(m);const d=fbData[n];if(!d)return null;const k=fbCur==='kzt'?1/(cfg.rate||465):1;return {spend:d.spend*k,impr:d.impr,clicks:d.clicks,results:d.results};}
+function medList(full){const src=full?records:DATA;const seen={},out=[];for(const r of src){const n=norm(r.m)||'(без метки)';if(!seen[n]){seen[n]=1;out.push({key:n,name:(r.m&&r.m.trim())||'(без метки)'});}}for(const k in fbData){if(!seen[k]){seen[k]=1;out.push({key:k,name:k});}}return out;}
+function pkgDirAuto(p){const n=norm(p);if(!n)return '(?)';if(n.includes('каз'))return 'ТЗ_каз';if(n.includes('career boost')||n.includes('сам себе тренер'))return 'ТЗ';if(n.includes('будь как')||n.includes('bust')||n.includes('буст'))return 'Bust_plus';return 'ГП';}
+function pkgDir(p){const n=norm(p);if(cfg.pkgmap&&cfg.pkgmap[n])return cfg.pkgmap[n];return pkgDirAuto(p);}
+function pkgList(){const s={};for(const id in payMap){const p=(payMap[id].pkg||'').trim();const n=norm(p);if(n&&!s[n])s[n]=p;}return Object.keys(s).map(n=>({key:n,name:s[n]}));}
+function guessCityCode(cmp){const n=norm(cmp);if(!n)return '';
+  if((n.includes('kar')&&n.includes('shym')))return 'Караганда/Шымкент';
+  if(n.includes('ala_as')||n.includes('ala_ast')||(n.includes('ala')&&n.includes('ast')))return 'Алматы/Астана';
+  if(n.includes('kz_wide')||n.includes('шир')||n.includes('4города')||n.includes('вся рк')||n.includes('wide'))return 'Вся РК';
+  if(n.includes('shym')||n.includes('шым'))return 'Шымкент';
+  if(n.includes('kar')||n.includes('караг'))return 'Караганда';
+  if(n.includes('алмат'))return 'Алматы'; if(n.includes('астан'))return 'Астана';
+  return '';}
+function planCityOf(r){const mc=planCity((r.m||'').trim());if(mc)return mc;const g=guessCityCode(r.cmp||'');if(g)return g;return guessCity(norm(r.m))||'(не задан)';}
+function payOf(id){return payMap[id]||null;}
+function cityBucket(c){const n=norm(c);if(!n)return 'Без города / другие';if(n.includes('алмат'))return 'Алматы';if(n.includes('астан'))return 'Астана';if(n.includes('караганд'))return 'Караганда';if(n.includes('шымкент')||n.includes('шимкент'))return 'Шымкент';return 'Без города / другие';}
+function langBucket(l){const n=norm(l);if(!n)return 'Без языка';if(n.includes('қаз')||n.includes('каз'))return 'Қазақ тілі';if(n.includes('рус'))return 'Русский';return 'Без языка';}
+
+const fmtInt=n=>Math.round(n).toLocaleString('ru-RU');
+const fmtKzt=n=>Math.round(n).toLocaleString('ru-RU')+' ₸';
+const fmtUsd=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPct=n=>n.toLocaleString('ru-RU',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+
+/* ---------- classification ---------- */
+function classify(r){
+  const b=baseStage(r.st), reason=reasonOf(r);
+  const QS=new Set(cfg.qs.map(norm)), SS=new Set(cfg.ss.map(norm)), QR=new Set(cfg.qr.map(norm));
+  const sale=SS.has(b);
+  const qual=QS.has(b)||sale||QR.has(reason);
+  return {qual,sale};
+}
+
+/* ---------- aggregation ---------- */
+function spendOf(medNorm){
+  if(cfg.spend[medNorm]!=null) return +cfg.spend[medNorm]||0; // ручной override всегда в приоритете
+  if(fbLoaded){ const d=fbData[medNorm]; if(d&&d.spend!=null) return fbCur==='kzt'? d.spend/(cfg.rate||465) : d.spend; return 0; }
+  return SPEND_DEF[medNorm]!=null?SPEND_DEF[medNorm]:0;
+}
+function parseNum(v){
+  if(typeof v==='number') return v;
+  let s=String(v==null?'':v).replace(/ /g,'').replace(/\s/g,'').trim();
+  if(!s||s==='-') return 0;
+  if(s.includes('.')&&s.includes(',')){ s = s.lastIndexOf(',')>s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,''); }
+  else if(s.includes(',')){ s=s.replace(/\./g,'').replace(',','.'); }
+  s=s.replace(/[^0-9.\-]/g,'');
+  return parseFloat(s)||0;
+}
+function blank(){return {leads:0,qual:0,sale:0,rev:0,spend:0,city:{},lang:{}};}
+function addCity(o,r){const c=cityBucket(r.c);o.city[c]=(o.city[c]||0)+1;const l=langBucket(r.l);o.lang[l]=(o.lang[l]||0)+1;}
+
+function aggregate(keyFn, spendByGroup){
+  const g={}; const seenMed={};
+  for(const r of DATA){
+    const key=keyFn(r); if(!g[key])g[key]=blank();
+    const o=g[key]; const cl=classify(r);
+    o.leads++; if(cl.qual)o.qual++; if(cl.sale)o.sale++; o.rev+=(+r.b||0); addCity(o,r);
+    const mn=norm(r.m); if(!seenMed[mn]){seenMed[mn]=true;}
+  }
+  // spend
+  if(spendByGroup==='med'){ for(const k in g) g[k].spend=spendOf(norm(k)); }
+  else { // sum spend of mediums belonging to each direction
+    const bymed={}; for(const r of DATA){const mn=norm(r.m); if(!(mn in bymed))bymed[mn]=spendOf(mn);}
+    // avoid double counting: sum unique mediums per dir
+    const dirMeds={}; for(const r of DATA){const d=keyFn(r),mn=norm(r.m);(dirMeds[d]=dirMeds[d]||new Set()).add(mn);}
+    for(const d in g){let s=0;dirMeds[d].forEach(mn=>s+=bymed[mn]);g[d].spend=s;}
+  }
+  return g;
+}
+
+function metrics(o,rate){
+  const m={...o};
+  m.perDay=o.leads/(curDays||cfg.days||1);
+  m.qpct=o.leads?o.qual/o.leads*100:0;
+  m.spct=o.qual?o.sale/o.qual*100:0;
+  m.cpl=o.spend>0?o.spend/o.leads:null;
+  m.cpql=o.spend>0&&o.qual?o.spend/o.qual:null;
+  m.cac=o.spend>0&&o.sale?o.spend/o.sale:null;
+  m.revUsd=o.rev/(rate||465);
+  m.romi=o.spend>0?(m.revUsd-o.spend)/o.spend*100:null;
+  return m;
+}
+
+/* ---------- rendering ---------- */
+function pctPill(p){const cls=p>=45?'g':p>=30?'w':'b';return '<span class="pill '+cls+'">'+fmtPct(p)+'</span>';}
+function romiCell(v){if(v==null)return '<span class="mut">—</span>';const cls=v>=0?'g':'b';return '<span class="pill '+cls+'">'+fmtPct(v)+'</span>';}
+const dash='<span class="mut">—</span>';
+
+function renderKPIs(){
+  const rate=cfg.rate||465;
+  let T=blank(); for(const r of DATA){const cl=classify(r);T.leads++;if(cl.qual)T.qual++;if(cl.sale)T.sale++;T.rev+=(+r.b||0);}
+  const meds=new Set(DATA.map(r=>norm(r.m))); let sp=0; meds.forEach(m=>sp+=spendOf(m)); T.spend=sp;
+  const M=metrics(T,rate);
+  const days=distinctDays(DATA)||cfg.days||1;
+  const perDay=(T.leads/days).toFixed(1).replace('.',',');
+  const tiles=[
+    ['Лиды',fmtInt(T.leads),perDay+' /день','hi'],
+    ['Квалы',fmtInt(T.qual),fmtPct(M.qpct)+' · CPQL '+(M.cpql?fmtUsd(M.cpql):'—'),''],
+    ['Продажи',fmtInt(T.sale),fmtPct(M.spct)+' от квалов','goodv'],
+    ['Выручка',fmtKzt(T.rev),fmtUsd(M.revUsd),''],
+    ['Расход',fmtUsd(T.spend),'CPL '+(M.cpl?fmtUsd(M.cpl):'—'),''],
+    ['ROMI',M.romi==null?'—':fmtPct(M.romi),'CAC '+(M.cac?fmtUsd(M.cac):'—'),M.romi>=0?'goodv':'badv'],
+  ];
+  if(fbLoaded){
+    let impr=0,clk=0; meds.forEach(m=>{const d=fbData[m];if(d){impr+=d.impr;clk+=d.clicks;}});
+    const ctr=impr?clk/impr*100:null, conv=clk?T.leads/clk*100:null;
+    tiles.push(['Клики (FB)',fmtInt(clk),'CTR '+(ctr==null?'—':fmtPct(ctr)),'']);
+    tiles.push(['Конв. сайта',conv==null?'—':fmtPct(conv),'лиды / клики','hi']);
+  }
+  if(payLoaded){
+    let paid=0,prev=0; for(const r of DATA){const p=payOf(r.id);if(p){paid++;prev+=p.paid;}}
+    tiles.push(['Оплачено (факт)',fmtKzt(prev),paid+' сделок'+(paySample?' · пример':''),'goodv']);
+  }
+  document.getElementById('kpis').innerHTML=tiles.map(t=>{
+    let vc=t[3]==='goodv'?' good':t[3]==='badv'?' bad':'';
+    let cc=t[3]==='hi'?' hi':'';
+    return '<div class="kpi'+cc+'"><div class="k">'+t[0]+'</div><div class="v'+vc+' tnum">'+t[1]+'</div><div class="d">'+t[2]+'</div></div>';
+  }).join('');
+}
+
+const COLS=[['Лиды','leads'],['/день','perDay'],['Конв. сайта','conv'],['Квал','qual'],['%квал','qpct'],['CPQL','cpql'],['Прод','sale'],['%кв→прод','spct'],['CAC','cac'],['Выручка ₸','rev'],['Расход $','spend'],['CPL','cpl'],['ROMI','romi']];
+let sortState={dir:{col:'leads',dir:-1},med:{col:'leads',dir:-1},fb:{col:'spend',dir:-1},recon:{col:'leads',dir:-1}};
+function setSort(t,col){const s=sortState[t];if(s.col===col)s.dir=-s.dir;else{s.col=col;s.dir=-1;}renderPanel();}
+function cmpVals(a,b,dir){const an=(a==null||a===''||(typeof a==='number'&&isNaN(a))),bn=(b==null||b===''||(typeof b==='number'&&isNaN(b)));if(an&&bn)return 0;if(an)return 1;if(bn)return -1;if(typeof a==='string'||typeof b==='string')return dir*String(a).localeCompare(String(b),'ru');return dir*(a-b);}
+function sortHead(t,label,col,align){const s=sortState[t];const on=s.col===col;const ar=on?(s.dir<0?' ↓':' ↑'):'';return '<th class="'+(align||'')+' sortable'+(on?' son':'')+'" onclick="setSort(\''+t+'\',\''+col+'\')">'+label+ar+'</th>';}
+function sortArr(arr,t,getVal){const s=sortState[t];arr.sort((x,y)=>cmpVals(getVal(x,s.col),getVal(y,s.col),s.dir));}
+
+function rowHtml(name,tag,M,isTotal){
+  const cells=[
+    fmtInt(M.leads),
+    M.perDay.toFixed(1).replace('.',','),
+    M.conv==null?dash:'<span class="pill '+(M.conv>=8?'g':M.conv>=4?'w':'b')+'">'+fmtPct(M.conv)+'</span>',
+    fmtInt(M.qual),
+    pctPill(M.qpct),
+    M.cpql?fmtUsd(M.cpql):dash,
+    '<span class="'+(M.sale?'sale':'')+'">'+fmtInt(M.sale)+'</span>',
+    M.qual?fmtPct(M.spct):dash,
+    M.cac?fmtUsd(M.cac):dash,
+    fmtInt(M.rev),
+    M.spend>0?fmtUsd(M.spend):dash,
+    M.cpl?fmtUsd(M.cpl):dash,
+    romiCell(M.romi),
+  ];
+  const label='<td class="l"><span class="name">'+name+'</span>'+(tag?' <span class="tag">'+tag+'</span>':'')+'</td>';
+  return '<tr'+(isTotal?' class="total"':'')+'>'+label+cells.map(c=>'<td class="tnum">'+c+'</td>').join('')+'</tr>';
+}
+
+function renderTable(mode){
+  const rate=cfg.rate||465;
+  const keyFn = mode==='med'? (r=>((r.m&&r.m.trim())||'(без метки)')) : (r=>dirOf(r.m));
+  const g=aggregate(keyFn, mode==='med'?'med':'dir');
+  // клики FB по группе (для конверсии сайта)
+  const clk={};const seenCk={};
+  for(const r of DATA){const key=keyFn(r),mn=norm(r.m),kk=key+'|'+mn;if(seenCk[kk])continue;seenCk[kk]=1;const fd=fbData[mn];if(fd)clk[key]=(clk[key]||0)+fd.clicks;}
+  const arr=Object.keys(g).map(k=>{const M=metrics(g[k],rate);M.conv=clk[k]?g[k].leads/clk[k]*100:null;return {k,tag:mode==='med'?dirOf(k):'',M};});
+  sortArr(arr,mode,(x,col)=>col==='name'?x.k:x.M[col]);
+  const head='<thead><tr>'+sortHead(mode,mode==='med'?'utm_medium':'Направление','name','l')+COLS.map(c=>sortHead(mode,c[0],c[1])).join('')+'</tr></thead>';
+  let body='';
+  for(const x of arr) body+=rowHtml(x.k,x.tag,x.M,false);
+  // total
+  let T=blank(); let clkT=0; for(const x of arr){for(const f of ['leads','qual','sale','rev','spend'])T[f]+=g[x.k][f];clkT+=clk[x.k]||0;}
+  const MT=metrics(T,rate); MT.conv=clkT?T.leads/clkT*100:null;
+  body+=rowHtml('ИТОГО','',MT,true);
+  return '<table class="data">'+head+'<tbody>'+body+'</tbody></table>';
+}
+
+function renderGeo(){
+  const g=aggregate(r=>dirOf(r.m),'dir');
+  const keys=Object.keys(g).sort((a,b)=>g[b].leads-g[a].leads);
+  const cityCols=['Алматы','Астана','Караганда','Шымкент','Без города / другие'];
+  const langCols=['Русский','Қазақ тілі','Без языка'];
+  const th=a=>'<th>'+a+'</th>';
+  let h='<table class="data"><thead><tr><th class="l">Направление</th><th>Лиды</th>'+cityCols.map(th).join('')+'<th>·</th>'+langCols.map(th).join('')+'</tr></thead><tbody>';
+  const tot={leads:0,city:{},lang:{}};
+  for(const k of keys){const o=g[k];
+    tot.leads+=o.leads;cityCols.forEach(c=>tot.city[c]=(tot.city[c]||0)+(o.city[c]||0));langCols.forEach(c=>tot.lang[c]=(tot.lang[c]||0)+(o.lang[c]||0));
+    h+='<tr><td class="l"><span class="name">'+k+'</span></td><td class="tnum">'+fmtInt(o.leads)+'</td>'+
+       cityCols.map(c=>'<td class="tnum">'+(o.city[c]||0)+'</td>').join('')+'<td></td>'+
+       langCols.map(c=>'<td class="tnum">'+(o.lang[c]||0)+'</td>').join('')+'</tr>';
+  }
+  h+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtInt(tot.leads)+'</td>'+
+     cityCols.map(c=>'<td class="tnum">'+(tot.city[c]||0)+'</td>').join('')+'<td></td>'+
+     langCols.map(c=>'<td class="tnum">'+(tot.lang[c]||0)+'</td>').join('')+'</tr>';
+  h+='</tbody></table>';
+  return h;
+}
+
+let medCity={};
+function computeMedCity(){medCity={};const acc={};
+  for(const r of DATA){const m=norm(r.m);const g=guessCityCode(r.cmp||'');if(!g)continue;(acc[m]=acc[m]||{})[g]=((acc[m]||{})[g]||0)+1;}
+  for(const m in acc){medCity[m]=Object.keys(acc[m]).sort((a,b)=>acc[m][b]-acc[m][a])[0];}}
+function campPlanCity(m){const n=norm(m);const mc=cfg.map[n]&&cfg.map[n].city;return mc||medCity[n]||'';}
+function segKey(r){if(!reconSeg)return dirOf(r.m);const c=campPlanCity(r.m);return dirOf(r.m)+(c?' · '+c:'');}
+function renderRecon(){
+  const rate=cfg.rate||465; computeMedCity();
+  const G={},adMeds={};
+  const ga=d=>G[d]||(G[d]={leads:0,qual:0,paid:0,rev:0,sold:{}});
+  for(const r of DATA){
+    const d=segKey(r),g=ga(d);g.leads++;if(classify(r).qual)g.qual++;
+    (adMeds[d]=adMeds[d]||new Set()).add(norm(r.m));
+    const pay=payOf(r.id);
+    if(pay){g.paid++;g.rev+=pay.paid;const sd=pkgDir(pay.pkg);const s=g.sold[sd]||(g.sold[sd]={deals:0,rev:0});s.deals++;s.rev+=pay.paid;}
+  }
+  const bymed={};for(const r of DATA){const mn=norm(r.m);if(!(mn in bymed))bymed[mn]=spendOf(mn);}
+  for(const d in G){let s=0;adMeds[d].forEach(mn=>s+=bymed[mn]);G[d].spend=s;}
+  // funnel table
+  const cols=[['Расход $','spend'],['Лиды','leads'],['Квал','qual'],['%квал','qpct'],['CPQL $','cpql'],['Оплаты','paid'],['Выручка ₸','rev'],['Ср. чек ₸','avg'],['CAC $','cac'],['ROMI','romi']];
+  const farr=Object.keys(G).map(d=>{const g=G[d];return {d,spend:g.spend,leads:g.leads,qual:g.qual,paid:g.paid,rev:g.rev,
+    qpct:g.leads?g.qual/g.leads*100:0,cpql:g.qual&&g.spend?g.spend/g.qual:null,
+    cac:g.paid&&g.spend?g.spend/g.paid:null,avg:g.paid?g.rev/g.paid:null,romi:g.spend>0?((g.rev/rate)-g.spend)/g.spend*100:null};});
+  sortArr(farr,'recon',(x,col)=>col==='name'?x.d:x[col]);
+  let body='';const T={spend:0,leads:0,qual:0,paid:0,rev:0};
+  for(const g of farr){
+    T.spend+=g.spend;T.leads+=g.leads;T.qual+=g.qual;T.paid+=g.paid;T.rev+=g.rev;
+    body+='<tr><td class="l"><span class="name">'+g.d+'</span></td>'+
+      '<td class="tnum">'+(g.spend?fmtUsd(g.spend):dash)+'</td><td class="tnum">'+fmtInt(g.leads)+'</td><td class="tnum">'+fmtInt(g.qual)+'</td>'+
+      '<td class="tnum">'+pctPill(g.qpct)+'</td><td class="tnum">'+(g.cpql==null?dash:fmtUsd(g.cpql))+'</td>'+
+      '<td class="tnum"><span class="'+(g.paid?'sale':'')+'">'+fmtInt(g.paid)+'</span></td><td class="tnum">'+(g.rev?fmtInt(g.rev):dash)+'</td>'+
+      '<td class="tnum">'+(g.avg==null?dash:fmtInt(g.avg))+'</td><td class="tnum">'+(g.cac==null?dash:fmtUsd(g.cac))+'</td><td class="tnum">'+romiCell(g.romi)+'</td></tr>';
+  }
+  const keys=Object.keys(G);
+  const romiT=T.spend>0?((T.rev/rate)-T.spend)/T.spend*100:null;
+  const qpctT=T.leads?T.qual/T.leads*100:0, cpqlT=T.qual&&T.spend?T.spend/T.qual:null;
+  body+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtUsd(T.spend)+'</td><td class="tnum">'+fmtInt(T.leads)+'</td><td class="tnum">'+fmtInt(T.qual)+'</td><td class="tnum">'+pctPill(qpctT)+'</td><td class="tnum">'+(cpqlT==null?dash:fmtUsd(cpqlT))+'</td><td class="tnum">'+fmtInt(T.paid)+'</td><td class="tnum">'+fmtInt(T.rev)+'</td><td class="tnum">'+(T.paid?fmtInt(T.rev/T.paid):dash)+'</td><td class="tnum">'+(T.paid?fmtUsd(T.spend/T.paid):dash)+'</td><td class="tnum">'+romiCell(romiT)+'</td></tr>';
+  const toggle='<div style="display:flex;gap:6px;align-items:center;padding:12px 14px 2px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Группировка:</span>'+
+    '<button class="tab'+(!reconSeg?' active':'')+'" style="font-size:13px;padding:5px 12px" onclick="setReconSeg(false)">Направление</button>'+
+    '<button class="tab'+(reconSeg?' active':'')+'" style="font-size:13px;padding:5px 12px" onclick="setReconSeg(true)">Направление + город (план)</button></div>';
+  const segHdr=reconSeg?'Направление + город (план)':'Рекл. направление';
+  const funnel=toggle+'<div class="rsec">Воронка: план (расход) → факт-лид → факт-оплата</div><div class="tscroll"><table class="data"><thead><tr>'+sortHead('recon',segHdr,'name','l')+cols.map(c=>sortHead('recon',c[0],c[1])).join('')+'</tr></thead><tbody>'+body+'</tbody></table></div>';
+  // leakage matrix ad-dir x sold-dir
+  const soldDirs=[...new Set(keys.flatMap(d=>Object.keys(G[d].sold)))];
+  let mrows='';
+  const paidDirs=keys.filter(d=>G[d].paid>0);
+  for(const d of paidDirs){const g=G[d];
+    mrows+='<tr><td class="l"><span class="name">'+d+'</span></td>'+
+      soldDirs.map(sd=>{const s=g.sold[sd];return '<td class="tnum">'+(s?(s.deals+' <span class="tag">'+fmtInt(s.rev)+'</span>'):'<span class="mut">·</span>')+'</td>';}).join('')+
+      '<td class="tnum"><b>'+g.paid+'</b></td></tr>';
+  }
+  const matrix = paidDirs.length? '<div class="rsec">Матрица утечки: рекламное направление (строки) → фактически оплаченное направление (столбцы). Ячейка = сделки · выручка ₸</div><div class="tscroll"><table class="data"><thead><tr><th class="l">Рекл. \\ Продано</th>'+soldDirs.map(s=>'<th>'+s+'</th>').join('')+'<th>Всего</th></tr></thead><tbody>'+mrows+'</tbody></table></div>' : '';
+  // cities: plan (реклама) -> факт-лид matrix
+  const cbk=['Алматы','Астана','Караганда','Шымкент','Без города / другие'];
+  const plm={};
+  for(const r of DATA){const pl=planCityOf(r);const ab=cityBucket(r.c);(plm[pl]=plm[pl]||{})[ab]=((plm[pl]||{})[ab]||0)+1;}
+  const plabels=Object.keys(plm).sort((a,b)=>{const s=o=>Object.values(plm[o]).reduce((x,y)=>x+y,0);return s(b)-s(a);});
+  let pmrows='';
+  for(const pl of plabels){const row=plm[pl];const tot=Object.values(row).reduce((x,y)=>x+y,0);
+    pmrows+='<tr><td class="l"><span class="name">'+pl+'</span></td>'+cbk.map(c=>'<td class="tnum">'+(row[c]?fmtInt(row[c]):'<span class="mut">·</span>')+'</td>').join('')+'<td class="tnum"><b>'+fmtInt(tot)+'</b></td></tr>';}
+  const cityMatrix='<div class="rsec">Города: план (на что таргетировали, из «Маппинга») → факт-город лида (amoCRM). Ячейка = лиды</div><div class="tscroll"><table class="data"><thead><tr><th class="l">План \\ Факт</th>'+cbk.map(c=>'<th>'+c+'</th>').join('')+'<th>Всего</th></tr></thead><tbody>'+pmrows+'</tbody></table></div>';
+  // cities: факт-лид vs факт-оплата
+  const lc={},pc={},pr={};cbk.forEach(c=>{lc[c]=0;pc[c]=0;pr[c]=0;});
+  for(const r of DATA){lc[cityBucket(r.c)]=(lc[cityBucket(r.c)]||0)+1;const pay=payOf(r.id);if(pay){const cb=cityBucket(pay.city);pc[cb]=(pc[cb]||0)+1;pr[cb]=(pr[cb]||0)+pay.paid;}}
+  let crows='';let clt=0,cpt=0,crt=0;
+  for(const c of cbk){crows+='<tr><td class="l">'+c+'</td><td class="tnum">'+fmtInt(lc[c]||0)+'</td><td class="tnum">'+fmtInt(pc[c]||0)+'</td><td class="tnum">'+(pr[c]?fmtInt(pr[c]):dash)+'</td></tr>';clt+=lc[c]||0;cpt+=pc[c]||0;crt+=pr[c]||0;}
+  crows+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtInt(clt)+'</td><td class="tnum">'+fmtInt(cpt)+'</td><td class="tnum">'+fmtInt(crt)+'</td></tr>';
+  const cityTbl='<div class="rsec">Города: факт-лид (amoCRM) vs факт-оплата (по городу из оплаты)</div><div class="tscroll"><table class="data" style="min-width:520px"><thead><tr><th class="l">Город</th><th>Лиды (amo)</th><th>Оплаты</th><th>Выручка ₸</th></tr></thead><tbody>'+crows+'</tbody></table></div>';
+  const lag='<div style="margin-top:14px;padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);font-size:12.5px;color:var(--muted)">⚠ Оплаты привязаны к сделке по ID и попадают сюда, только если сама сделка есть в загруженных лидах amoCRM. Оплата обычно приходит позже создания лида, поэтому у «свежей» когорты лидов оплат мало (в примере 1–8 сент. — 28 из 603). Для честной атрибуции ROMI грузи лиды за более ранний период (у них было время оплатить) либо оценивай выручку когорты с лагом.</div>';
+  return funnel+matrix+cityMatrix+cityTbl+lag;
+}
+
+function renderGuide(){
+  return `<div class="gdoc">
+  <p class="lead">Инструмент связывает три источника — Facebook, amoCRM и таблицу оплат — и показывает воронку по направлениям и городам: сколько потрачено, сколько лидов и квалов пришло и сколько денег реально оплатили. Всё считается в браузере из выгрузок, ничего никуда не отправляется.</p>
+
+  <h2>1. Быстрый старт</h2>
+  <p>Сервис открывается на данных-примере (1–8 сентября). Чтобы посчитать свои данные, загрузи три выгрузки кнопками сверху:</p>
+  <div class="step"><div class="num">1</div><div><h3>Лиды (amoCRM)</h3>Выгрузка сделок из amoCRM (CSV или XLSX) — лиды, этапы, направления, города, языки.</div></div>
+  <div class="step"><div class="num">2</div><div><h3>Расход (FB)</h3>Отчёт Ads Manager на уровне «Кампания» — расход, показы, клики. Подтягивает деньги и CTR/конверсию сайта.</div></div>
+  <div class="step"><div class="num">3</div><div><h3>Оплаты</h3>Лист «Оплаты Invictus Academy» — фактическая выручка по сделкам.</div></div>
+  <div class="callout">Порядок не важен. После каждой загрузки под кнопками появляется строка-подтверждение (сколько прочитано и сколько сошлось по ID). Настройки и маппинг сохраняются в браузере.</div>
+
+  <h2>2. Как готовить выгрузки</h2>
+  <h3>Лиды из amoCRM</h3>
+  <p>Экспорт сделок со всеми полями — колонки находятся по названиям. Нужны: <span class="f">ID</span> (ключ связки с оплатами), <span class="f">Этап сделки</span>, <span class="f">utm_medium</span> (кампания), <span class="f">utm_campaign</span> (адсет — для плана-города), <span class="f">Бюджет ₸</span>, <span class="f">Город?</span>, <span class="f">Язык</span>, <span class="f">Дата создания сделки</span>, <span class="f">utm_source</span>. Даты понимаются в форматах ДД.ММ.ГГГГ и ГГГГ-ММ-ДД.</p>
+  <h3>Расход из Facebook</h3>
+  <p>Ads Manager → уровень «Кампания» → экспорт. Нужны <span class="f">Название кампании</span>, <span class="f">Потраченная сумма</span>, <span class="f">Показы</span>, <span class="f">Клики по ссылке</span>. Связь с amoCRM: <b>Название кампании = utm_medium</b> (регистр не важен). Тенге переводятся в доллары по курсу автоматически.</p>
+  <h3>Таблица оплат</h3>
+  <p>Лист «Оплаты Invictus Academy». Ключ связки — <span class="f">Ссылка AmoCRM</span> (из неё берётся ID сделки). Также нужны <span class="f">Сумма, которую оплатили</span>, <span class="f">Дата оплаты</span>, <span class="f">Город</span>, <span class="f">Пакет обучения</span> (= проданное направление). Оплата попадает в отчёт, если её сделка есть среди загруженных лидов.</p>
+
+  <h2>3. Фильтры сверху</h2>
+  <p>Панель липкая и действует на все вкладки сразу:</p>
+  <ul>
+    <li><b>Период</b> — пресеты (7/30 дней, этот/прошлый месяц) или свои даты «от–до».</li>
+    <li><b>Направление / Город (факт) / Источник</b> — выпадашки с галочками, поиском и счётчиком лидов; «выбрать все / сбросить».</li>
+    <li>Справа — счётчик «X из Y лидов» и «Сбросить всё».</li>
+  </ul>
+  <div class="callout">«Город (факт)» — реальный город лида из amoCRM. Плановый город (на что таргетировали) задаётся во вкладке «Маппинг».</div>
+
+  <h2>4. Вкладки</h2>
+  <table><thead><tr><th>Вкладка</th><th>Что показывает</th></tr></thead><tbody>
+    <tr><td><b>Сверка 3 источников</b></td><td>Главная. Воронка по рекламному направлению: расход (FB) → лиды/квал (amoCRM) → оплаты/выручка. Ниже — матрица утечки (реклама какого направления → в каком реально оплатили), матрица «план-город → факт-город» и «факт-лид vs факт-оплата» по городам. Переключатель «Направление / Направление + город».</td></tr>
+    <tr><td><b>По направлениям</b></td><td>Экономика по направлению: лиды, /день, конв. сайта, квал, %квал, CPQL, продажи, %квал→прод, CAC, выручка, расход, CPL, ROMI.</td></tr>
+    <tr><td><b>По utm_medium</b></td><td>То же, но по каждой кампании.</td></tr>
+    <tr><td><b>Реклама (FB)</b></td><td>Показы, клики, CTR, CPC, конв. сайта, квал, %квал, CPQL, расход, CPL по кампаниям.</td></tr>
+    <tr><td><b>Города и языки</b></td><td>Разбивка лидов (факт) по городам и языкам.</td></tr>
+    <tr><td><b>Маппинг</b></td><td>Ручная привязка кампаний к направлению и городу + пакет → направление. См. раздел 5.</td></tr>
+  </tbody></table>
+
+  <h2>5. Маппинг</h2>
+  <ul>
+    <li><b>Поиск</b> по названию кампании.</li>
+    <li><b>Направление (план)</b> — поле с подсказками.</li>
+    <li><b>Город (план)</b> — нажми на поле и отметь галочками любую комбинацию: Алматы, Астана, Караганда, Шымкент, Вся РК (например «Алматы + Шымкент»).</li>
+    <li><b>Массовое назначение</b> — отметь несколько кампаний → в панели укажи направление/город → «Применить».</li>
+    <li><b>Прогресс</b> «Размечено X из Y», статус ✓/нет; неразмеченные — наверху.</li>
+    <li><b>Пакет → направление продажи</b> — таблица ниже, редактируется.</li>
+  </ul>
+  <div class="callout">Плановый город: сначала твоё ручное значение из «Маппинга»; если не задано — по коду адсета (<span class="f">ala_ast</span>→Алматы/Астана, <span class="f">kar_shym</span>→Караганда/Шымкент, <span class="f">kz_wide</span>→Вся РК). Ручное всегда в приоритете.</div>
+
+  <h2>6. Настройки (⚙ под плашками)</h2>
+  <ul>
+    <li><b>Курс ₸/$</b> (по умолч. 465) и <b>Дней в периоде</b>.</li>
+    <li><b>Этапы = квал</b> и <b>Этапы = продажа</b> — галочки, пересчёт мгновенный.</li>
+    <li><b>Причины закрытия → квал</b> — закрытые с этими причинами всё равно считаются квалом.</li>
+    <li><b>Расход по utm_medium</b> — из FB; можно поправить вручную (ручное перебивает FB).</li>
+  </ul>
+
+  <h2>7. Сортировка и экспорт</h2>
+  <p>Клик по заголовку столбца сортирует по нему; повторный — меняет направление (↓/↑). Кнопка <b>«CSV отчёта»</b> выгружает таблицу по направлениям (с учётом фильтра).</p>
+
+  <h2>8. Метрики и формулы</h2>
+  <table><thead><tr><th>Метрика</th><th>Формула / смысл</th></tr></thead><tbody>
+    <tr><td><b>Квал</b></td><td>Сделка на квал-этапе, ИЛИ закрыта с «квальной» причиной, ИЛИ дошла до продажи.</td></tr>
+    <tr><td><b>% квала</b></td><td>Квал ÷ Лиды.</td></tr>
+    <tr><td><b>Продажа</b></td><td>Этап «предоплата/траншевая» или «Успешно реализовано».</td></tr>
+    <tr><td><b>CPL / CPQL / CAC</b></td><td>Расход ÷ Лиды / ÷ Квал / ÷ Продажи.</td></tr>
+    <tr><td><b>Конв. сайта</b></td><td>Лиды amoCRM ÷ Клики FB. <b>CTR</b> = Клики ÷ Показы.</td></tr>
+    <tr><td><b>Выручка</b></td><td>В «Сверке» — реальные оплаты; в остальных таблицах — сумма «Бюджет ₸».</td></tr>
+    <tr><td><b>ROMI</b></td><td>(Выручка ÷ Курс − Расход) ÷ Расход.</td></tr>
+    <tr><td><b>Ср. чек</b></td><td>Выручка (оплаты) ÷ Кол-во оплат.</td></tr>
+  </tbody></table>
+
+  <h2>9. Важные нюансы</h2>
+  <div class="callout warn"><b>Оплата приходит позже лида.</b> Джойн лидов недели с оплатами той же недели даёт мало совпадений — продажи приходят позже. Для честного ROMI бери лиды за более ранний период: связка идёт по ID сделки, а не по дате, и находит оплаты когорты, когда бы они ни пришли.</div>
+  <ul>
+    <li><b>«—»</b> — нет данных для расчёта (нет расхода по каналу, нет квалов/продаж/кликов).</li>
+    <li><b>«(без метки)»</b> — лиды без <span class="f">utm_medium</span> (органика/ручные). Не ошибка.</li>
+    <li><b>Несовпадение неймингов</b> — если название кампании в FB ≠ utm_medium в CRM, расход не сцепится: поправь названия или задай расход вручную.</li>
+    <li><b>Периоды</b> лидов и FB должны совпадать.</li>
+  </ul>
+  <p style="margin-top:24px;color:var(--muted);font-size:13px">Дальше по плану — подключение по API (Facebook Marketing API + amoCRM), чтобы данные тянулись без выгрузок.</p>
+  </div>`;
+}
+
+function renderPanel(){
+  const p=document.getElementById('panel');
+  p.innerHTML = curTab==='guide'?renderGuide(): curTab==='recon'?renderRecon(): curTab==='geo'?renderGeo(): curTab==='fb'?renderFb(): curTab==='map'?renderMap(): renderTable(curTab);
+  if(curTab==='map')bindMap();
+  const foot=document.getElementById('foot');
+  if(curTab==='guide') foot.innerHTML='';
+  else if(curTab==='recon') foot.innerHTML='<b>Три источника рядом:</b> ПЛАН — расход FB по рекламному направлению; ФАКТ-ЛИД — лиды/квалы из amoCRM; ФАКТ-ОПЛАТА — сделки и выручка из таблицы оплат (джойн по ID сделки из «Ссылка AmoCRM»). Направление продажи = из пакета обучения в оплате. <b>Матрица утечки</b> показывает, как лиды рекламного направления оплатили в другом направлении. Важно: оплата приходит позже создания лида, поэтому для честной атрибуции сравнивай лиды и оплаты одной когорты (см. заметку внизу).';
+  else if(curTab==='geo') foot.innerHTML='Разбивка лидов по городам и языкам (факт из amoCRM). Город берётся из первого заполненного поля (Город? / ГОРОД_ПРОЖИВАНИЯ_ГП / ҚАЙ ҚАЛАДАН), язык — из «Язык» либо «на каком языке комфортнее».';
+  else if(curTab==='fb') foot.innerHTML='Данные из выгрузки FB + лиды из amoCRM (связка «Название кампании» = utm_medium). <b>CTR</b> = клики/показы. <b>Конв. сайта</b> = лиды amoCRM / клики по ссылке. <b>CPC</b> = расход/клик. Направление и город здесь — <b>план</b> (на что таргетировали), из вкладки «Маппинг».';
+  else if(curTab==='map') foot.innerHTML='Плановая привязка кампаний: какое направление и город рекламировали. Влияет на группировку «По направлениям» и на план в отчёте. Факт (реальные город/направление лида) берётся из amoCRM отдельно — их сравнение и покажет утечку.';
+  else foot.innerHTML='<b>Квал</b> = сделка на квал-этапе, ИЛИ закрыта с «квальной» причиной, ИЛИ дошла до продажи. <b>Продажа</b> = предоплата/траншевая или «Успешно реализовано». CPQL = расход/квал, CAC = расход/продажу, ROMI = (выручка/курс − расход)/расход. «—» = нет расхода по каналу (органика/сарафанка) или нет квалов/продаж.';
+}
+
+function renderFb(){
+  const rate=cfg.rate||465;
+  const g=aggregate(r=>((r.m&&r.m.trim())||'(без метки)'),'med'); // leads by medium
+  const meds=medList();
+  // include only mediums that have FB data or leads
+  const rowsRaw=meds.filter(m=>fbOf(m.key)||g[m.name]).map(m=>{
+    const fb=fbOf(m.key)||{spend:spendOf(m.key),impr:0,clicks:0,results:0};
+    const leads=g[m.name]?g[m.name].leads:0;
+    const qual=g[m.name]?g[m.name].qual:0;
+    return {name:m.name,key:m.key,dir:dirOf(m.name),city:planCity(m.name)||guessCity(m.key)||'',
+      impr:fb.impr,clicks:fb.clicks,leads:leads,qual:qual,spend:fb.spend,
+      ctr:fb.impr?fb.clicks/fb.impr*100:null,cpc:fb.clicks?fb.spend/fb.clicks:null,
+      conv:fb.clicks?leads/fb.clicks*100:null,qpct:leads?qual/leads*100:0,cpql:qual&&fb.spend?fb.spend/qual:null,cpl:leads&&fb.spend?fb.spend/leads:null};
+  });
+  const cols=[['Напр (план)','dir'],['Город (план)','city'],['Показы','impr'],['Клики','clicks'],['CTR','ctr'],['CPC','cpc'],['Лиды','leads'],['Конв. сайта','conv'],['Квал','qual'],['%квал','qpct'],['CPQL','cpql'],['Расход','spend'],['CPL','cpl']];
+  sortArr(rowsRaw,'fb',(x,col)=>col==='name'?x.name:x[col]);
+  let body='';const T={impr:0,clicks:0,leads:0,qual:0,spend:0};
+  for(const x of rowsRaw){
+    T.impr+=x.impr;T.clicks+=x.clicks;T.leads+=x.leads;T.qual+=x.qual;T.spend+=x.spend;
+    body+='<tr><td class="l"><span class="name">'+x.name+'</span></td>'+
+      '<td class="l">'+(x.dir||'—')+'</td><td class="l">'+(x.city||'<span class="mut">—</span>')+'</td>'+
+      '<td class="tnum">'+(x.impr?fmtInt(x.impr):dash)+'</td><td class="tnum">'+(x.clicks?fmtInt(x.clicks):dash)+'</td>'+
+      '<td class="tnum">'+(x.ctr==null?dash:fmtPct(x.ctr))+'</td><td class="tnum">'+(x.cpc==null?dash:fmtUsd(x.cpc))+'</td>'+
+      '<td class="tnum">'+fmtInt(x.leads)+'</td><td class="tnum">'+(x.conv==null?dash:'<span class="pill '+(x.conv>=8?'g':x.conv>=4?'w':'b')+'">'+fmtPct(x.conv)+'</span>')+'</td>'+
+      '<td class="tnum">'+fmtInt(x.qual)+'</td><td class="tnum">'+pctPill(x.qpct)+'</td><td class="tnum">'+(x.cpql==null?dash:fmtUsd(x.cpql))+'</td>'+
+      '<td class="tnum">'+(x.spend?fmtUsd(x.spend):dash)+'</td><td class="tnum">'+(x.cpl==null?dash:fmtUsd(x.cpl))+'</td></tr>';
+  }
+  const ctrT=T.impr?T.clicks/T.impr*100:null, convT=T.clicks?T.leads/T.clicks*100:null, cpcT=T.clicks?T.spend/T.clicks:null, cplT=T.leads&&T.spend?T.spend/T.leads:null;
+  const qpctT=T.leads?T.qual/T.leads*100:0, cpqlT=T.qual&&T.spend?T.spend/T.qual:null;
+  body+='<tr class="total"><td class="l">ИТОГО</td><td></td><td></td><td class="tnum">'+fmtInt(T.impr)+'</td><td class="tnum">'+fmtInt(T.clicks)+'</td><td class="tnum">'+(ctrT==null?dash:fmtPct(ctrT))+'</td><td class="tnum">'+(cpcT==null?dash:fmtUsd(cpcT))+'</td><td class="tnum">'+fmtInt(T.leads)+'</td><td class="tnum">'+(convT==null?dash:fmtPct(convT))+'</td><td class="tnum">'+fmtInt(T.qual)+'</td><td class="tnum">'+pctPill(qpctT)+'</td><td class="tnum">'+(cpqlT==null?dash:fmtUsd(cpqlT))+'</td><td class="tnum">'+fmtUsd(T.spend)+'</td><td class="tnum">'+(cplT==null?dash:fmtUsd(cplT))+'</td></tr>';
+  const head='<thead><tr>'+sortHead('fb','Кампания','name','l')+cols.map(c=>sortHead('fb',c[0],c[1],c[1]==='dir'||c[1]==='city'?'l':'')).join('')+'</tr></thead>';
+  const banner = fbLoaded?'':'<div style="padding:12px 14px;color:var(--muted);font-size:13px">Показы, клики, CTR и CPC появятся после загрузки выгрузки FB (кнопка «Расход (FB)»). Сейчас показаны лиды и предзаполненный расход.</div>';
+  return banner+'<table class="data">'+head+'<tbody>'+body+'</tbody></table>';
+}
+
+let mapSel={};
+const CITY_OPTS=['Алматы','Астана','Караганда','Шымкент','Вся РК'];
+function splitCities(v){return v?String(v).split(/\s*[,\/]\s*/).map(s=>s.trim()).filter(Boolean):[];}
+function cityLabel(v){const a=splitCities(v);return a.length?a.join(', '):'<span class="mut">— выбрать</span>';}
+function closeCityPops(){document.querySelectorAll('.citypop').forEach(p=>p.remove());}
+function openCityPop(btn,curArr,onChange){
+  closeCityPops();closePops();
+  const pop=document.createElement('div');pop.className='pop citypop';
+  const r=btn.getBoundingClientRect();
+  pop.style.position='absolute';pop.style.top=(window.scrollY+r.bottom+4)+'px';pop.style.left=(window.scrollX+r.left)+'px';pop.style.minWidth='180px';pop.style.zIndex='60';
+  pop.innerHTML=CITY_OPTS.map(c=>'<label class="opt"><input type="checkbox" value="'+c+'"'+(curArr.indexOf(c)>=0?' checked':'')+'><span>'+c+'</span></label>').join('')+'<div class="prow"><a data-a="clear">Очистить</a><a data-a="done">Готово</a></div>';
+  document.body.appendChild(pop);
+  const getSel=()=>[...pop.querySelectorAll('input:checked')].map(i=>i.value);
+  pop.addEventListener('click',e=>e.stopPropagation());
+  pop.addEventListener('change',()=>onChange(getSel()));
+  pop.querySelector('[data-a="clear"]').onclick=()=>{pop.querySelectorAll('input').forEach(i=>i.checked=false);onChange([]);};
+  pop.querySelector('[data-a="done"]').onclick=()=>closeCityPops();
+}
+function isMapped(k){return !!(cfg.map[k]&&(cfg.map[k].dir||cfg.map[k].city));}
+function medCounts(){const c={};for(const r of records){const n=norm(r.m)||'(без метки)';c[n]=(c[n]||0)+1;}return c;}
+function renderMap(){
+  const meds=medList(true);const cnt=medCounts();
+  meds.sort((a,b)=>{const ma=isMapped(a.key)?1:0,mb=isMapped(b.key)?1:0;if(ma!==mb)return ma-mb;return (cnt[b.key]||0)-(cnt[a.key]||0);});
+  const total=meds.length, mapped=meds.filter(m=>isMapped(m.key)).length;
+  const dirs=[...new Set(meds.map(m=>dirOf(m.name)).concat(['ТЗ','ГП','ТЗ_Кар_Шым','ТЗ_каз','Bust_plus']))].filter(Boolean);
+  let rows='';
+  for(const m of meds){
+    const mp=isMapped(m.key);
+    rows+='<tr data-k="'+m.key+'" data-name="'+m.name.toLowerCase().replace(/"/g,'&quot;')+'">'+
+      '<td style="width:34px"><input type="checkbox" class="rowchk"></td>'+
+      '<td class="l"><span class="name">'+m.name+'</span> <span class="tag">'+(cnt[m.key]||0)+' лид.</span></td>'+
+      '<td><input class="mapdir mapinput" list="dirlist" value="'+(dirOf(m.name)||'').replace(/"/g,'&quot;')+'"></td>'+
+      '<td><button type="button" class="citybtn mapinput" style="text-align:left;cursor:pointer">'+cityLabel(planCity(m.name))+'</button></td>'+
+      '<td style="width:90px"><span class="chip '+(mp?'set':'unset')+'" data-st>'+(mp?'✓ задано':'нет')+'</span></td></tr>';
+  }
+  const tool='<div class="maptool">'+
+    '<div class="searchbox"><input id="mapSearch" placeholder="Поиск кампании…"></div>'+
+    '<div class="progress">Размечено: <b>'+mapped+'</b> из '+total+' кампаний</div>'+
+    '</div>'+
+    '<div class="bulkbar" id="bulkbar" hidden><span class="bt" id="bulkcnt"></span>'+
+      '<span class="mut" style="font-size:13px">Назначить:</span>'+
+      '<input id="bulkdir" list="dirlist" placeholder="направление" style="width:150px">'+
+      '<button type="button" id="bulkcity" class="mapinput" style="width:180px;text-align:left;cursor:pointer">город…</button>'+
+      '<button class="btn primary" id="bulkapply" style="padding:6px 12px">Применить</button>'+
+      '<span class="flink" id="bulkclear">Снять выделение</span></div>';
+  const camp='<div class="tscroll"><table class="data" style="min-width:640px"><thead><tr><th style="width:34px"><input type="checkbox" id="mapAll" class="rowchk"></th><th class="l">Кампания (utm_medium)</th><th class="l">Направление (план)</th><th class="l">Город (план)</th><th>Статус</th></tr></thead><tbody id="mapBody">'+rows+'</tbody></table></div>';
+  const pkgs=pkgList().sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  let prows='';
+  for(const p of pkgs){prows+='<tr data-pkg="'+p.key.replace(/"/g,'&quot;')+'"><td class="l"><span class="name">'+p.name+'</span></td>'+
+    '<td><input class="pkgdir mapinput" list="dirlist" value="'+(pkgDir(p.name)||'').replace(/"/g,'&quot;')+'" style="max-width:220px"></td></tr>';}
+  const pkgTbl = pkgs.length? '<div class="rsec">Пакет обучения → направление продажи (из таблицы оплат)</div><div class="tscroll"><table class="data" style="min-width:420px"><thead><tr><th class="l">Пакет</th><th class="l">Направление (продажа)</th></tr></thead><tbody>'+prows+'</tbody></table></div>' : '';
+  return '<datalist id="dirlist">'+dirs.map(d=>'<option value="'+d+'">').join('')+'</datalist>'+
+    '<datalist id="citylist">'+['Алматы','Астана','Караганда','Шымкент','Алматы/Астана','Караганда/Шымкент','Вся РК'].map(c=>'<option value="'+c+'">').join('')+'</datalist>'+
+    tool+camp+pkgTbl;
+}
+function updBulkBar(){
+  const n=Object.keys(mapSel).length;const bb=document.getElementById('bulkbar');if(!bb)return;
+  bb.hidden=n===0;const c=document.getElementById('bulkcnt');if(c)c.textContent='Выбрано: '+n;
+}
+function setRowStatus(tr){const k=tr.getAttribute('data-k');const chip=tr.querySelector('[data-st]');if(!chip)return;const mp=isMapped(k);chip.className='chip '+(mp?'set':'unset');chip.textContent=mp?'✓ задано':'нет';}
+function bindMap(){
+  mapSel={};
+  const body=document.getElementById('mapBody');
+  document.querySelectorAll('#panel tr[data-k]').forEach(tr=>{
+    const k=tr.getAttribute('data-k');
+    const di=tr.querySelector('.mapdir'), cb=tr.querySelector('.citybtn'), ch=tr.querySelector('.rowchk');
+    di.addEventListener('change',()=>{const cur=cfg.map[k]||{};cfg.map[k]={dir:di.value.trim(),city:cur.city||''};save();setRowStatus(tr);renderKPIs();});
+    cb.addEventListener('click',e=>{e.stopPropagation();openCityPop(cb,splitCities((cfg.map[k]||{}).city),sel=>{const dir=di.value.trim();cfg.map[k]={dir,city:sel.join(', ')};cb.innerHTML=cityLabel(sel.join(', '));save();setRowStatus(tr);renderKPIs();});});
+    ch.addEventListener('change',()=>{if(ch.checked)mapSel[k]=1;else delete mapSel[k];tr.style.background=ch.checked?'var(--surface2)':'';updBulkBar();});
+  });
+  const search=document.getElementById('mapSearch');
+  if(search)search.addEventListener('input',e=>{const q=e.target.value.toLowerCase();document.querySelectorAll('#mapBody tr[data-k]').forEach(tr=>{tr.style.display=tr.getAttribute('data-name').includes(q)?'':'none';});});
+  const all=document.getElementById('mapAll');
+  if(all)all.addEventListener('change',()=>{document.querySelectorAll('#mapBody tr[data-k]').forEach(tr=>{if(tr.style.display==='none')return;const ch=tr.querySelector('.rowchk');ch.checked=all.checked;const k=tr.getAttribute('data-k');if(all.checked)mapSel[k]=1;else delete mapSel[k];tr.style.background=all.checked?'var(--surface2)':'';});updBulkBar();});
+  let bulkCity=[];
+  const bcb=document.getElementById('bulkcity');
+  if(bcb)bcb.addEventListener('click',e=>{e.stopPropagation();openCityPop(bcb,bulkCity,sel=>{bulkCity=sel;bcb.innerHTML=bulkCity.length?bulkCity.join(', '):'город…';});});
+  const apply=document.getElementById('bulkapply');
+  if(apply)apply.addEventListener('click',()=>{
+    const d=document.getElementById('bulkdir').value.trim(),c=bulkCity.join(', ');
+    if(!d&&!c){alert('Укажите направление и/или город для назначения.');return;}
+    Object.keys(mapSel).forEach(k=>{const cur=cfg.map[k]||{};cfg.map[k]={dir:d||cur.dir||'',city:c||cur.city||''};});
+    save();renderPanel();recompute(false);
+  });
+  const clr=document.getElementById('bulkclear');
+  if(clr)clr.addEventListener('click',()=>{mapSel={};document.querySelectorAll('#mapBody .rowchk').forEach(c=>c.checked=false);document.querySelectorAll('#mapBody tr[data-k]').forEach(tr=>tr.style.background='');updBulkBar();});
+  document.querySelectorAll('#panel tr[data-pkg]').forEach(tr=>{
+    const k=tr.getAttribute('data-pkg');const di=tr.querySelector('.pkgdir');
+    di.addEventListener('change',()=>{const v=di.value.trim();if(v)cfg.pkgmap[k]=v;else delete cfg.pkgmap[k];save();});
+  });
+}
+
+/* ---------- config UI ---------- */
+function distinctStages(){const m={};for(const r of records){const b=baseStage(r.st);if(!m[b])m[b]= b==='закрыто и не реализовано'?'Закрыто и не реализовано':(r.st||b);}return m;}
+function distinctReasons(){const s={};for(const r of records){const rr=reasonOf(r);if(rr)s[rr]=rr;}return s;}
+function distinctMeds(){const s=new Set();for(const r of records)s.add(norm(r.m)||'(без метки)');return [...s].sort();}
+
+function chkRow(container, key, label, on, cls, onchange){
+  const id='c_'+Math.random().toString(36).slice(2);
+  const el=document.createElement('label');el.className='chk'+(on?' '+cls:'');el.htmlFor=id;
+  el.innerHTML='<input type="checkbox" id="'+id+'" '+(on?'checked':'')+'><span>'+label+'</span>';
+  el.querySelector('input').addEventListener('change',e=>{if(cls)el.classList.toggle(cls,e.target.checked);onchange(key,e.target.checked);});
+  container.appendChild(el);
+}
+
+function buildConfig(){
+  const stages=distinctStages(), reasons=distinctReasons(), meds=distinctMeds();
+  const QS=new Set(cfg.qs.map(norm)),SS=new Set(cfg.ss.map(norm)),QR=new Set(cfg.qr.map(norm));
+  const qc=document.getElementById('qStages');qc.innerHTML='';
+  const sc=document.getElementById('sStages');sc.innerHTML='';
+  Object.keys(stages).sort().forEach(k=>{
+    chkRow(qc,k,stages[k],QS.has(k),'', (key,on)=>{toggle(cfg.qs,key,on);recompute();});
+    chkRow(sc,k,stages[k],SS.has(k),'saleon',(key,on)=>{toggle(cfg.ss,key,on);recompute();});
+  });
+  const rc=document.getElementById('qReasons');rc.innerHTML='';
+  Object.keys(reasons).sort().forEach(k=>chkRow(rc,k,reasons[k],QR.has(k),'reasonon',(key,on)=>{toggle(cfg.qr,key,on);recompute();}));
+  const sr=document.getElementById('spendRows');sr.innerHTML='';
+  meds.forEach(m=>{
+    const val=Math.round(spendOf(m)*100)/100;
+    const auto=(cfg.spend[m]==null&&fbLoaded&&fbData[m]&&fbData[m].spend!=null)?' title="из выгрузки FB"':'';
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+m+(auto?' <span class="tag">FB</span>':'')+'</td><td style="text-align:right"><input type="number" step="0.01" value="'+val+'"'+auto+'></td>';
+    tr.querySelector('input').addEventListener('input',e=>{const v=e.target.value;if(v==='')delete cfg.spend[m];else cfg.spend[m]=parseFloat(v)||0;save();recompute(false);});
+    sr.appendChild(tr);
+  });
+}
+function toggle(arr,key,on){const i=arr.map(norm).indexOf(key);if(on){if(i<0)arr.push(key);}else{if(i>=0)arr.splice(i,1);}save();}
+
+/* ---------- recompute ---------- */
+let curDays=cfg.days;
+function recompute(rebuildCfg){DATA=filtered();curDays=distinctDays(DATA)||cfg.days;renderFilterBar();renderKPIs();renderPanel();if(rebuildCfg!==false)buildConfig();}
+
+/* ---------- filter bar ---------- */
+function maxDate(){let mx='';for(const r of records)if(r.d&&r.d>mx)mx=r.d;return mx;}
+function minDate(){let mn='';for(const r of records)if(r.d&&(!mn||r.d<mn))mn=r.d;return mn;}
+function shiftDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function setPreset(p){
+  flt.preset=p; const mx=maxDate()||new Date().toISOString().slice(0,10);
+  if(p==='all'){flt.from='';flt.to='';}
+  else if(p==='7'){flt.to=mx;flt.from=shiftDays(mx,-6);}
+  else if(p==='30'){flt.to=mx;flt.from=shiftDays(mx,-29);}
+  else if(p==='month'){flt.to=mx;flt.from=mx.slice(0,8)+'01';}
+  else if(p==='prev'){const d=new Date(mx+'T00:00:00');const pm=new Date(d.getFullYear(),d.getMonth()-1,1);const last=new Date(d.getFullYear(),d.getMonth(),0);flt.from=pm.toISOString().slice(0,10);flt.to=last.toISOString().slice(0,10);}
+  recompute();
+}
+function fOptions(field){
+  const c={};
+  for(const r of records){
+    let v;
+    if(field==='dirs')v=dirOf(r.m); else if(field==='cities')v=cityBucket(r.c); else v=((r.src||'').trim())||'(нет)';
+    c[v]=(c[v]||0)+1;
+  }
+  return Object.keys(c).sort((a,b)=>c[b]-c[a]).map(v=>({v,n:c[v]}));
+}
+function applyOnly(){DATA=filtered();curDays=distinctDays(DATA)||cfg.days;renderKPIs();renderPanel();updatePillCounts();}
+function updatePillCounts(){
+  document.querySelectorAll('#filterbar .msel').forEach(ms=>{
+    const f=ms.getAttribute('data-f');const n=flt[f].length;
+    const b=ms.querySelector('.pill-btn');b.classList.toggle('act',n>0);
+    const cnt=b.querySelector('.cnt'); if(n>0){cnt.textContent=n;cnt.hidden=false;}else{cnt.hidden=true;}
+  });
+  const s=document.getElementById('fsum'); if(s)s.textContent=fmtInt(DATA.length)+' из '+fmtInt(records.length)+' лидов';
+  const rl=document.getElementById('freset'); if(rl)rl.hidden=activeFilterCount()===0;
+}
+function closePops(){document.querySelectorAll('#filterbar .pop').forEach(p=>p.remove());}
+function openPop(ms,field,label){
+  if(ms.querySelector('.pop')){closePops();return;}
+  closePops();
+  const pop=document.createElement('div');pop.className='pop';
+  const opts=fOptions(field);
+  pop.innerHTML='<input class="psearch" placeholder="Поиск…">'+
+    '<div class="poplist">'+opts.map(o=>'<label class="opt"><input type="checkbox" value="'+String(o.v).replace(/"/g,'&quot;')+'"'+(flt[field].indexOf(o.v)>=0?' checked':'')+'><span>'+o.v+'</span><span class="n">'+o.n+'</span></label>').join('')+'</div>'+
+    '<div class="prow"><a data-a="all">Выбрать все</a><a data-a="clear">Сбросить</a></div>';
+  ms.appendChild(pop);
+  const list=pop.querySelector('.poplist');
+  pop.querySelector('.psearch').addEventListener('input',e=>{const q=e.target.value.toLowerCase();list.querySelectorAll('.opt').forEach(o=>{o.style.display=o.textContent.toLowerCase().includes(q)?'':'none';});});
+  list.addEventListener('change',e=>{const v=e.target.value;if(e.target.checked){if(flt[field].indexOf(v)<0)flt[field].push(v);}else{const i=flt[field].indexOf(v);if(i>=0)flt[field].splice(i,1);}applyOnly();});
+  pop.querySelector('[data-a="all"]').addEventListener('click',()=>{flt[field]=opts.map(o=>o.v);list.querySelectorAll('input').forEach(c=>c.checked=true);applyOnly();});
+  pop.querySelector('[data-a="clear"]').addEventListener('click',()=>{flt[field]=[];list.querySelectorAll('input').forEach(c=>c.checked=false);applyOnly();});
+  pop.addEventListener('click',e=>e.stopPropagation());
+  pop.querySelector('.psearch').focus();
+}
+function renderFilterBar(){
+  const bar=document.getElementById('filterbar');if(!bar)return;
+  const presets=[['all','Весь период'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц']];
+  const seg='<div class="seg">'+presets.map(p=>'<button data-p="'+p[0]+'" class="'+(flt.preset===p[0]?'on':'')+'">'+p[1]+'</button>').join('')+'</div>';
+  const dates='<input type="date" class="dateinp" id="fFrom" value="'+(flt.from||'')+'"><span class="mut">–</span><input type="date" class="dateinp" id="fTo" value="'+(flt.to||'')+'">';
+  const pill=(f,lbl)=>'<div class="msel" data-f="'+f+'"><button class="pill-btn'+(flt[f].length?' act':'')+'">'+lbl+' <span class="cnt"'+(flt[f].length?'':' hidden')+'>'+(flt[f].length||'')+'</span> ▾</button></div>';
+  bar.innerHTML='<span class="flabel">Период</span>'+seg+dates+
+    '<span class="flabel" style="margin-left:6px">Фильтры</span>'+pill('dirs','Направление')+pill('cities','Город (факт)')+pill('sources','Источник')+
+    '<div class="fspacer"></div><span class="fsum" id="fsum"></span><span class="flink" id="freset"'+(activeFilterCount()?'':' hidden')+'>Сбросить всё</span>';
+  bar.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>setPreset(b.getAttribute('data-p'))));
+  bar.querySelector('#fFrom').addEventListener('change',e=>{flt.from=e.target.value;flt.preset='custom';applyOnly();markPreset();});
+  bar.querySelector('#fTo').addEventListener('change',e=>{flt.to=e.target.value;flt.preset='custom';applyOnly();markPreset();});
+  bar.querySelectorAll('.msel').forEach(ms=>{ms.querySelector('.pill-btn').addEventListener('click',e=>{e.stopPropagation();openPop(ms,ms.getAttribute('data-f'));});});
+  bar.querySelector('#freset').addEventListener('click',()=>{flt={preset:'all',from:'',to:'',dirs:[],cities:[],sources:[]};recompute();});
+  updatePillCounts();
+}
+function markPreset(){document.querySelectorAll('#filterbar .seg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-p')===flt.preset));}
+document.addEventListener('click',()=>{closePops();closeCityPops();});
+
+/* ---------- file parsing ---------- */
+function pick(headers,tests){for(const t of tests){for(const h of headers)if(norm(h)===t)return h;}for(const t of tests){for(const h of headers)if(norm(h).includes(t))return h;}return null;}
+function toRecords(rows){
+  if(!rows.length)return [];
+  const H=Object.keys(rows[0]);
+  const cId=pick(H,['id']),cStage=pick(H,['этап сделки','этап']),cReason=pick(H,['причина отказа','причина']),cBud=pick(H,['бюджет']),cMed=pick(H,['utm_medium']),cCmp=pick(H,['utm_campaign']),cSrc=pick(H,['utm_source']),cDate=pick(H,['дата создания','дата']);
+  const toISO=s=>{s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');return '';};
+  const cityCols=H.filter(h=>{const n=norm(h);return n.includes('город')||n.includes('қала')||n.includes('қаладан');});
+  const langCols=H.filter(h=>{const n=norm(h);return n==='язык'||n.includes('язык')||n.includes('тілі')||n.includes('на_каком')||n.includes('комфортнее');});
+  return rows.filter(r=>Object.values(r).some(v=>v!=='')).map(r=>{
+    const first=cols=>{for(const c of cols){const v=(r[c]||'').toString().trim();if(v)return v;}return '';};
+    let id=(r[cId]==null?'':r[cId]).toString().trim(); if(/^\d+\.0$/.test(id))id=id.slice(0,-2);
+    return {id:id,st:(r[cStage]||'').toString(),rs:(r[cReason]||'').toString(),
+      b:parseFloat(((r[cBud]||'0').toString()).replace(/[^\d.]/g,''))||0,
+      m:(r[cMed]||'').toString().trim(),cmp:(r[cCmp]||'').toString().trim(),src:(r[cSrc]||'').toString().trim(),c:first(cityCols),l:first(langCols),
+      d:toISO(r[cDate])};
+  });
+}
+function afterLoad(recs,label){
+  if(!recs.length){alert('Не нашёл строк с данными. Проверь, что это выгрузка сделок amoCRM (нужны колонки «Этап сделки» и «utm_medium»).');return;}
+  records=recs; cfg.spend={}; // сбросить ручной расход при новой выгрузке
+  flt={preset:'all',from:'',to:'',dirs:[],cities:[],sources:[]}; // сбросить фильтр под новые данные
+  // авто дни по датам
+  const ds=recs.map(r=>r.d).filter(Boolean).sort();
+  if(ds.length){const a=new Date(ds[0]),b=new Date(ds[ds.length-1]);const dd=Math.round((b-a)/864e5)+1;if(dd>0&&dd<400){cfg.days=dd;document.getElementById('days').value=dd;}}
+  document.getElementById('src').textContent=label+' · '+recs.length+' лидов. Проверь расходы в «Настройках» и курс.';
+  document.getElementById('cfg').open=true;
+  save();recompute();
+}
+function arraysToObjects(arr){
+  if(!arr||!arr.length) return [];
+  const H=arr[0].map(h=>String(h==null?'':h).trim());
+  const out=[];
+  for(let i=1;i<arr.length;i++){
+    const row=arr[i]; if(!row) continue;
+    if(!row.some(c=>String(c==null?'':c).trim()!=='')) continue;
+    const o={};
+    for(let j=0;j<H.length;j++){const k=H[j];if(k==='')continue;if(!(k in o))o[k]=(row[j]==null?'':row[j]);}
+    out.push(o);
+  }
+  return out;
+}
+function readTable(f, hints, cb){
+  const name=f.name.toLowerCase();
+  if(name.endsWith('.xlsx')||name.endsWith('.xls')){
+    const rd=new FileReader();
+    rd.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});
+      let sn=wb.SheetNames.find(n=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',blankrows:false});const h=(a[0]||[]).map(x=>norm(x));return h.some(x=>hints.some(t=>x.includes(t)));})||wb.SheetNames[0];
+      cb(arraysToObjects(XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',blankrows:false})));
+    }catch(err){alert('Не удалось прочитать XLSX: '+err.message);}};
+    rd.readAsArrayBuffer(f);
+  }else{
+    Papa.parse(f,{header:false,skipEmptyLines:true,complete:res=>cb(arraysToObjects(res.data))});
+  }
+}
+document.getElementById('file').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  readTable(f,['utm_medium','этап сделки'],rows=>afterLoad(toRecords(rows),f.name));
+});
+
+/* ---------- FB spend export ---------- */
+function parseFb(rows){
+  rows=rows.filter(r=>Object.values(r).some(v=>String(v).trim()!==''));
+  if(!rows.length) return null;
+  const H=Object.keys(rows[0]);
+  const campCol=pick(H,['название кампании','campaign name','кампан']);
+  const spendCol=pick(H,['потраченная сумма','amount spent','потрачен','сумма затрат','spend']);
+  if(!campCol||!spendCol) return null;
+  const imprCol=pick(H,['показы','impressions']);
+  const clickCol=pick(H,['клики по ссылке','link clicks','клики (все)','clicks']);
+  const resCol=pick(H,['результат']);
+  const cur=/kzt|тенге|₸/.test(norm(spendCol))?'kzt':'usd';
+  const map={};
+  for(const r of rows){const k=norm(r[campCol]);if(!k)continue;
+    const o=map[k]||(map[k]={spend:0,impr:0,clicks:0,results:0});
+    o.spend+=parseNum(r[spendCol]); if(imprCol)o.impr+=parseNum(r[imprCol]); if(clickCol)o.clicks+=parseNum(r[clickCol]); if(resCol)o.results+=parseNum(r[resCol]);
+  }
+  return {map,cur,n:Object.keys(map).length,hasImpr:!!imprCol,hasClicks:!!clickCol};
+}
+document.getElementById('fbfile').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  readTable(f,['потрачен','название кампании','amount spent','campaign name'],rows=>{
+    const res=parseFb(rows);
+    if(!res){alert('Не нашёл в файле колонки «Название кампании» и «Потраченная сумма». Это выгрузка Ads Manager (уровень «Кампания»)?');return;}
+    fbData=res.map;fbCur=res.cur;fbLoaded=true;fbName=f.name;
+    cfg.spend={}; // снять ручные оверрайды — теперь расход из FB
+    let tot=0;for(const k in res.map)tot+=res.map[k].spend;
+    if(res.cur==='kzt')tot=tot/(cfg.rate||465);
+    const extra=(res.hasImpr?', показы':'')+(res.hasClicks?', клики':'');
+    document.getElementById('fbsrc').textContent='Расход из FB: '+f.name+' · '+res.n+' кампаний · '+(res.cur==='kzt'?'₸→$ по курсу':'USD')+' · всего '+fmtUsd(tot)+extra+'. Связка «Название кампании» = utm_medium.';
+    document.getElementById('cfg').open=true;
+    save();recompute();
+  });
+});
+
+/* ---------- payments export (join by amo deal ID) ---------- */
+function parsePay(rows){
+  rows=rows.filter(r=>Object.values(r).some(v=>String(v).trim()!==''));
+  if(!rows.length) return null;
+  const H=Object.keys(rows[0]);
+  const cLink=pick(H,['ссылка amocrm','ссылка amo','amocrm','ссылка на сделку','ссылка']);
+  const cPaid=pick(H,['сумма, которую оплатили','сумма которую оплатили','оплатили','сумма оплаты']);
+  const cCity=pick(H,['город']);
+  const cPkg=pick(H,['пакет обучения','пакет','курс']);
+  const cContract=pick(H,['сумма которая указана в договоре','сумма договора','договор']);
+  const cDate=pick(H,['дата оплаты']);
+  const cType=pick(H,['тип оплаты']);
+  if(!cLink||!cPaid) return null;
+  const map={};
+  for(const r of rows){
+    const m=String(r[cLink]||'').match(/\/leads\/detail\/(\d+)/);
+    if(!m) continue; const id=m[1];
+    const o=map[id]||(map[id]={id,city:'',pkg:'',paid:0,contract:0,date:'',ptypes:[]});
+    o.paid+=parseNum(r[cPaid]); if(cContract)o.contract=Math.max(o.contract,parseNum(r[cContract]));
+    if(cCity&&r[cCity])o.city=String(r[cCity]).trim();
+    if(cPkg&&r[cPkg])o.pkg=String(r[cPkg]).trim();
+    const dt=cDate?String(r[cDate]||'').slice(0,10):''; if(dt>o.date)o.date=dt;
+    if(cType&&r[cType])o.ptypes.push(String(r[cType]).trim());
+  }
+  return {map,n:Object.keys(map).length};
+}
+document.getElementById('payfile').addEventListener('change',ev=>{
+  const f=ev.target.files[0];if(!f)return;
+  readTable(f,['ссылка amocrm','сумма, которую оплатили','пакет обучения','дата оплаты'],rows=>{
+    const res=parsePay(rows);
+    if(!res){alert('Не нашёл колонки «Ссылка AmoCRM» и «Сумма, которую оплатили». Это лист оплат?');return;}
+    payMap=res.map;payLoaded=true;paySample=false;payName=f.name;
+    const ids=new Set(records.map(r=>r.id));
+    let matched=0;for(const id in payMap)if(ids.has(id))matched++;
+    document.getElementById('paysrc').textContent='Оплаты: '+f.name+' · '+res.n+' сделок · сошлись с текущими лидами по ID: '+matched+'. Связка «Ссылка AmoCRM» → ID сделки.';
+    save();recompute();
+  });
+});
+
+/* ---------- export ---------- */
+function buildCsv(){
+  const rate=cfg.rate||465;const g=aggregate(dirOf,'dir');const keys=Object.keys(g).sort((a,b)=>g[b].leads-g[a].leads);
+  const head=['Направление','Лиды','Лидов/день','Квал','%квал','CPQL$','Продажи','%квал_продажа','CAC$','Выручка₸','Расход$','CPL$','ROMI%'];
+  const lines=[head.join(';')];
+  const num=n=>n==null?'':String(n).replace('.',',');
+  for(const k of keys){const M=metrics(g[k],rate);
+    lines.push([k,M.leads,num(M.perDay.toFixed(1)),M.qual,num(M.qpct.toFixed(1)),M.cpql?num(M.cpql.toFixed(2)):'',M.sale,M.qual?num(M.spct.toFixed(1)):'',M.cac?num(M.cac.toFixed(2)):'',Math.round(M.rev),num(M.spend.toFixed(2)),M.cpl?num(M.cpl.toFixed(2)):'',M.romi==null?'':num(M.romi.toFixed(1))].join(';'));}
+  return '﻿'+lines.join('\n');
+}
+document.getElementById('dl').addEventListener('click',async()=>{
+  const csv=buildCsv(), filename='razbor_napravleniy.csv';
+  let downloads=null;
+  try{ if(window.claude&&window.claude.use) downloads=await window.claude.use('downloads'); }catch(e){}
+  if(downloads){
+    try{ await downloads.save({filename,data:csv}); }
+    catch(e){ if(e&&e.code!=='declined') alert('Не удалось сохранить файл: '+(e.message||e.code||e)); }
+  }else{
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }
+});
+
+/* ---------- tabs / theme / inputs ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');curTab=t.dataset.t;renderPanel();
+}));
+document.getElementById('rate').addEventListener('input',e=>{cfg.rate=parseFloat(e.target.value)||465;save();recompute(false);});
+document.getElementById('days').addEventListener('input',e=>{cfg.days=parseFloat(e.target.value)||1;save();recompute(false);});
+document.getElementById('rate').value=cfg.rate||465;
+document.getElementById('days').value=cfg.days||8;
+const themeBtn=document.getElementById('theme');
+themeBtn.addEventListener('click',()=>{const cur=document.documentElement.getAttribute('data-theme');const mql=matchMedia('(prefers-color-scheme:dark)').matches;const next=(cur==='dark'||(!cur&&mql))?'light':'dark';document.documentElement.setAttribute('data-theme',next);try{localStorage.setItem('theme',next)}catch(e){}});
+try{const t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+
+/* ---------- init ---------- */
+recompute();
+</script>
+
+</body>
+</html>
