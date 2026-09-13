@@ -1,10 +1,4 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
+<!doctype html><meta charset="utf-8">
 <title>Разбор направлений Invictus</title>
 <meta name="description" content="Воронка лидов из выгрузки amoCRM: квалы, продажи и деньги по направлениям и utm_medium.">
 <style>
@@ -298,7 +292,7 @@ function filtered(){
   return records.filter(r=>{
     if(flt.from && (!r.d || r.d<flt.from)) return false;
     if(flt.to && (!r.d || r.d>flt.to)) return false;
-    if(flt.dirs.length && flt.dirs.indexOf(dirOf(r.m))<0) return false;
+    if(flt.dirs.length && flt.dirs.indexOf(groupDir(r))<0) return false;
     if(flt.cities.length && flt.cities.indexOf(cityBucket(r.c))<0) return false;
     if(flt.sources.length && flt.sources.indexOf(((r.src||'').trim())||'(нет)')<0) return false;
     return true;
@@ -323,6 +317,9 @@ function pkgDir(p){const n=norm(p);if(cfg.pkgmap&&cfg.pkgmap[n])return cfg.pkgma
 function pkgList(){const s={};for(const id in payMap){const p=(payMap[id].pkg||'').trim();const n=norm(p);if(n&&!s[n])s[n]=p;}return Object.keys(s).map(n=>({key:n,name:s[n]}));}
 function formDir(fn){const n=norm(fn);if(!n)return '';if(n.includes('tzkz')||(n.includes('tz')&&n.includes('kz')))return 'ТЗ_каз';if(n.includes('выпускник')||n.includes('cbplus')||n.includes('будь как'))return 'Bust_plus';if(n.includes('tz'))return 'ТЗ';if(n.includes('quiz')||n.includes('popupinvictus'))return 'ГП';return '';}
 function factDir(r){const c=pkgDir(r.crs||'');if((r.crs||'').trim()&&c&&c!=='(?)')return c;const f=formDir(r.fn||'');if(f)return f;return dirOf(r.m);}
+let dirBasis='ad';
+function groupDir(r){return dirBasis==='fact'?factDir(r):dirOf(r.m);}
+function setDirBasis(v){dirBasis=v;flt.dirs=[];recompute();}
 function guessCityCode(cmp){const n=norm(cmp);if(!n)return '';
   if((n.includes('kar')&&n.includes('shym')))return 'Караганда/Шымкент';
   if(n.includes('ala_as')||n.includes('ala_ast')||(n.includes('ala')&&n.includes('ast')))return 'Алматы/Астана';
@@ -466,7 +463,7 @@ function rowHtml(name,tag,M,isTotal){
 
 function renderTable(mode){
   const rate=cfg.rate||465;
-  const keyFn = mode==='med'? (r=>((r.m&&r.m.trim())||'(без метки)')) : (r=>dirOf(r.m));
+  const keyFn = mode==='med'? (r=>((r.m&&r.m.trim())||'(без метки)')) : (r=>groupDir(r));
   const g=aggregate(keyFn, mode==='med'?'med':'dir');
   // клики FB по группе (для конверсии сайта)
   const clk={};const seenCk={};
@@ -484,7 +481,7 @@ function renderTable(mode){
 }
 
 function renderGeo(){
-  const g=aggregate(r=>dirOf(r.m),'dir');
+  const g=aggregate(r=>groupDir(r),'dir');
   const keys=Object.keys(g).sort((a,b)=>g[b].leads-g[a].leads);
   const cityCols=['Алматы','Астана','Караганда','Шымкент','Без города / другие'];
   const langCols=['Русский','Қазақ тілі','Без языка'];
@@ -509,7 +506,7 @@ function computeMedCity(){medCity={};const acc={};
   for(const r of DATA){const m=norm(r.m);const g=guessCityCode(r.cmp||'');if(!g)continue;(acc[m]=acc[m]||{})[g]=((acc[m]||{})[g]||0)+1;}
   for(const m in acc){medCity[m]=Object.keys(acc[m]).sort((a,b)=>acc[m][b]-acc[m][a])[0];}}
 function campPlanCity(m){const n=norm(m);const mc=cfg.map[n]&&cfg.map[n].city;return mc||medCity[n]||'';}
-function segKey(r){if(!reconSeg)return dirOf(r.m);const c=campPlanCity(r.m);return dirOf(r.m)+(c?' · '+c:'');}
+function segKey(r){const base=groupDir(r);if(!reconSeg)return base;const c=campPlanCity(r.m);return base+(c?' · '+c:'');}
 function renderRecon(){
   const rate=cfg.rate||465; computeMedCity();
   const G={},adMeds={},factMx={};
@@ -517,7 +514,7 @@ function renderRecon(){
   for(const r of DATA){
     const d=segKey(r),g=ga(d);g.leads++;if(classify(r).qual)g.qual++;
     (adMeds[d]=adMeds[d]||new Set()).add(norm(r.m));
-    const fd=factDir(r);(factMx[d]=factMx[d]||{})[fd]=((factMx[d]||{})[fd]||0)+1;
+    const adk=dirOf(r.m),fd=factDir(r);(factMx[adk]=factMx[adk]||{})[fd]=((factMx[adk]||{})[fd]||0)+1;
     const pay=payOf(r.id);
     if(pay){g.paid++;g.rev+=pay.paid;const sd=pkgDir(pay.pkg);const s=g.sold[sd]||(g.sold[sd]={deals:0,rev:0});s.deals++;s.rev+=pay.paid;}
   }
@@ -558,11 +555,12 @@ function renderRecon(){
   }
   const matrix = paidDirs.length? '<div class="rsec">Матрица утечки: рекламное направление (строки) → фактически оплаченное направление (столбцы). Ячейка = сделки · выручка ₸</div><div class="tscroll"><table class="data"><thead><tr><th class="l">Рекл. \\ Продано</th>'+soldDirs.map(s=>'<th>'+s+'</th>').join('')+'<th>Всего</th></tr></thead><tbody>'+mrows+'</tbody></table></div>' : '';
   // matrix ad-dir x fact-dir (lead, from amo)
-  const factDirs=[...new Set(keys.flatMap(d=>Object.keys(factMx[d]||{})))].sort((a,b)=>{let sa=0,sb=0;keys.forEach(d=>{sa+=(factMx[d]||{})[a]||0;sb+=(factMx[d]||{})[b]||0;});return sb-sa;});
+  const adKeys=Object.keys(factMx).sort((a,b)=>{const s=o=>Object.values(factMx[o]).reduce((x,y)=>x+y,0);return s(b)-s(a);});
+  const factDirs=[...new Set(adKeys.flatMap(d=>Object.keys(factMx[d]||{})))].sort((a,b)=>{let sa=0,sb=0;adKeys.forEach(d=>{sa+=(factMx[d]||{})[a]||0;sb+=(factMx[d]||{})[b]||0;});return sb-sa;});
   let fmrows='';
-  for(const d of keys){const row=factMx[d]||{};const tot=Object.values(row).reduce((x,y)=>x+y,0);if(!tot)continue;
+  for(const d of adKeys){const row=factMx[d]||{};const tot=Object.values(row).reduce((x,y)=>x+y,0);if(!tot)continue;
     fmrows+='<tr><td class="l"><span class="name">'+d+'</span></td>'+
-      factDirs.map(fd=>{const v=row[fd]||0;const same=norm(fd)===norm(dirOf(d.split(' · ')[0]))||norm(fd)===norm(d);return '<td class="tnum">'+(v?(same?'<b>'+v+'</b>':v):'<span class="mut">·</span>')+'</td>';}).join('')+
+      factDirs.map(fd=>{const v=row[fd]||0;const same=norm(fd)===norm(d);return '<td class="tnum">'+(v?(same?'<b>'+v+'</b>':v):'<span class="mut">·</span>')+'</td>';}).join('')+
       '<td class="tnum"><b>'+fmtInt(tot)+'</b></td></tr>';}
   const factMatrix='<div class="rsec">Реклама → фактическое направление лида (из amoCRM: Курс → FORMNAME). Ячейка = лиды; жирным — совпадение с рекламным</div><div class="tscroll"><table class="data"><thead><tr><th class="l">Рекл. \\ Факт-лид</th>'+factDirs.map(s=>'<th>'+s+'</th>').join('')+'<th>Всего</th></tr></thead><tbody>'+fmrows+'</tbody></table></div>';
   // cities: plan (реклама) -> факт-лид matrix
@@ -587,10 +585,10 @@ function renderRecon(){
 
 function valOf(r,metric){if(metric==='leads')return 1;const cl=classify(r);if(metric==='qual')return cl.qual?1:0;if(metric==='sale')return cl.sale?1:0;if(metric==='rev')return +r.b||0;return 0;}
 function renderDays(){
-  const dg=aggregate(r=>dirOf(r.m),'dir');
+  const dg=aggregate(r=>groupDir(r),'dir');
   const dirs=Object.keys(dg).sort((a,b)=>dg[b].leads-dg[a].leads);
   const M={},dates={};
-  for(const r of DATA){const d=r.d||'—';const dr=dirOf(r.m);dates[d]=1;(M[d]=M[d]||{})[dr]=((M[d]||{})[dr]||0)+valOf(r,dayMetric);}
+  for(const r of DATA){const d=r.d||'—';const dr=groupDir(r);dates[d]=1;(M[d]=M[d]||{})[dr]=((M[d]||{})[dr]||0)+valOf(r,dayMetric);}
   const dl=Object.keys(dates).filter(x=>x&&x!=='—').sort();
   const metricsSel=[['leads','Лиды'],['qual','Квал'],['sale','Продажи'],['rev','Выручка ₸']];
   const seg='<div style="display:flex;gap:6px;align-items:center;padding:12px 14px 2px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Показатель:</span>'+metricsSel.map(m=>'<button class="tab daymetric'+(dayMetric===m[0]?' active':'')+'" style="font-size:13px;padding:5px 12px" data-m="'+m[0]+'">'+m[1]+'</button>').join('')+'</div>';
@@ -607,7 +605,7 @@ function renderDays(){
 function bindDays(){document.querySelectorAll('#panel .daymetric').forEach(b=>b.addEventListener('click',()=>{dayMetric=b.getAttribute('data-m');renderPanel();}));}
 
 function renderPlan(){
-  const g=aggregate(r=>dirOf(r.m),'dir');
+  const g=aggregate(r=>groupDir(r),'dir');
   const N=periodDays();
   const dirs=[...new Set(Object.keys(g).concat(Object.keys(cfg.plan)))].sort((a,b)=>((g[b]&&g[b].leads)||0)-((g[a]&&g[a].leads)||0));
   const mets=[['leads','Лиды'],['qual','Квал'],['sale','Продажи'],['rev','Выручка ₸']];
@@ -928,7 +926,7 @@ function fOptions(field){
   const c={};
   for(const r of records){
     let v;
-    if(field==='dirs')v=dirOf(r.m); else if(field==='cities')v=cityBucket(r.c); else v=((r.src||'').trim())||'(нет)';
+    if(field==='dirs')v=groupDir(r); else if(field==='cities')v=cityBucket(r.c); else v=((r.src||'').trim())||'(нет)';
     c[v]=(c[v]||0)+1;
   }
   return Object.keys(c).sort((a,b)=>c[b]-c[a]).map(v=>({v,n:c[v]}));
@@ -967,17 +965,20 @@ function renderFilterBar(){
   const seg='<div class="seg">'+presets.map(p=>'<button data-p="'+p[0]+'" class="'+(flt.preset===p[0]?'on':'')+'">'+p[1]+'</button>').join('')+'</div>';
   const dates='<input type="date" class="dateinp" id="fFrom" value="'+(flt.from||'')+'"><span class="mut">–</span><input type="date" class="dateinp" id="fTo" value="'+(flt.to||'')+'">';
   const pill=(f,lbl)=>'<div class="msel" data-f="'+f+'"><button class="pill-btn'+(flt[f].length?' act':'')+'">'+lbl+' <span class="cnt"'+(flt[f].length?'':' hidden')+'>'+(flt[f].length||'')+'</span> ▾</button></div>';
+  const basis='<div class="seg" id="basisSeg"><button data-bs="ad" class="'+(dirBasis==='ad'?'on':'')+'">Рекл.</button><button data-bs="fact" class="'+(dirBasis==='fact'?'on':'')+'">Факт (amo)</button></div>';
   bar.innerHTML='<span class="flabel">Период</span>'+seg+dates+
+    '<span class="flabel" style="margin-left:6px">Напр.</span>'+basis+
     '<span class="flabel" style="margin-left:6px">Фильтры</span>'+pill('dirs','Направление')+pill('cities','Город (факт)')+pill('sources','Источник')+
     '<div class="fspacer"></div><span class="fsum" id="fsum"></span><span class="flink" id="freset"'+(activeFilterCount()?'':' hidden')+'>Сбросить всё</span>';
-  bar.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>setPreset(b.getAttribute('data-p'))));
+  bar.querySelectorAll('.seg button[data-p]').forEach(b=>b.addEventListener('click',()=>setPreset(b.getAttribute('data-p'))));
+  bar.querySelectorAll('#basisSeg button').forEach(b=>b.addEventListener('click',()=>setDirBasis(b.getAttribute('data-bs'))));
   bar.querySelector('#fFrom').addEventListener('change',e=>{flt.from=e.target.value;flt.preset='custom';applyOnly();markPreset();});
   bar.querySelector('#fTo').addEventListener('change',e=>{flt.to=e.target.value;flt.preset='custom';applyOnly();markPreset();});
   bar.querySelectorAll('.msel').forEach(ms=>{ms.querySelector('.pill-btn').addEventListener('click',e=>{e.stopPropagation();openPop(ms,ms.getAttribute('data-f'));});});
   bar.querySelector('#freset').addEventListener('click',()=>{flt={preset:'all',from:'',to:'',dirs:[],cities:[],sources:[]};recompute();});
   updatePillCounts();
 }
-function markPreset(){document.querySelectorAll('#filterbar .seg button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-p')===flt.preset));}
+function markPreset(){document.querySelectorAll('#filterbar .seg button[data-p]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-p')===flt.preset));}
 document.addEventListener('click',()=>{closePops();closeCityPops();});
 
 /* ---------- file parsing ---------- */
@@ -1155,6 +1156,3 @@ try{const t=localStorage.getItem('theme');if(t)document.documentElement.setAttri
 recompute();
 initDb();
 </script>
-
-</body>
-</html>
