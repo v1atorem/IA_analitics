@@ -271,6 +271,19 @@ let cfg = load('cfg_v1', {qs:DEF_QUAL_STAGES,ss:DEF_SALE_STAGES,qr:DEF_QUAL_REAS
 if(!cfg.map)cfg.map={}; if(!cfg.pkgmap)cfg.pkgmap={}; if(!cfg.plan)cfg.plan={};
 let dayMetric='leads', planFact={}, planDoc=null;
 function periodDays(){ if(flt.from&&flt.to){const a=new Date(flt.from+'T00:00:00'),b=new Date(flt.to+'T00:00:00');const d=Math.round((b-a)/864e5)+1;if(d>0)return d;} return distinctDays(DATA)||cfg.days||1; }
+/* ---------- план / клики helpers ---------- */
+function planPer(dir,m){const d=(cfg.plan&&cfg.plan[dir]&&+cfg.plan[dir][m])||0;return d*periodDays();}
+function hasPlan(){if(!cfg.plan)return false;for(const d in cfg.plan){const o=cfg.plan[d];for(const k in o){if(+o[k])return true;}}return false;}
+function planTotals(){const T={leads:0,qual:0,sale:0,rev:0};if(cfg.plan){for(const d in cfg.plan){['leads','qual','sale','rev'].forEach(m=>T[m]+=planPer(d,m));}}return T;}
+function planMini(fact,per){
+  if(!per) return '<div class="plfact mut">план —</div>';
+  const pct=fact/per*100, gap=Math.round(per-fact);
+  const cls=pct>=100?'':pct>=70?'warn':'bad';
+  return '<div class="plrow"><div class="plbar"><i class="'+cls+'" style="width:'+Math.min(100,pct)+'%"></i></div><span class="plpct">'+Math.round(pct)+'%</span></div>'+
+         '<div class="plfact">план '+fmtInt(per)+' · '+(gap>0?'<span style="color:var(--bad)">−'+fmtInt(gap)+'</span>':'<span style="color:var(--good)">✓</span>')+'</div>';
+}
+function planSuffix(fact,per){if(!per)return '';const pct=Math.round(fact/per*100);const gap=Math.round(per-fact);return ' · '+pct+'% плана'+(gap>0?' (−'+fmtInt(gap)+')':' ✓');}
+function clicksByGroup(keyFn){const clk={};const seen={};for(const r of DATA){const key=keyFn(r),mn=norm(r.m),kk=key+'|'+mn;if(seen[kk])continue;seen[kk]=1;const fd=fbData[mn];if(fd)clk[key]=(clk[key]||0)+fd.clicks;}return clk;}
 async function initDb(){
   try{ if(!(window.claude&&window.claude.use))return;
     const db=await claude.use('db'); if(!db)return; planDoc=db.doc('config/plan');
@@ -409,11 +422,12 @@ function renderKPIs(){
   const M=metrics(T,rate);
   const days=distinctDays(DATA)||cfg.days||1;
   const perDay=(T.leads/days).toFixed(1).replace('.',',');
+  const PP=planTotals(), hp=hasPlan();
   const tiles=[
-    ['Лиды',fmtInt(T.leads),perDay+' /день','hi'],
-    ['Квалы',fmtInt(T.qual),fmtPct(M.qpct)+' · CPQL '+(M.cpql?fmtUsd(M.cpql):'—'),''],
-    ['Продажи',fmtInt(T.sale),fmtPct(M.spct)+' от квалов','goodv'],
-    ['Выручка',fmtKzt(T.rev),fmtUsd(M.revUsd),''],
+    ['Лиды',fmtInt(T.leads),perDay+' /день'+(hp?planSuffix(T.leads,PP.leads):''),'hi'],
+    ['Квалы',fmtInt(T.qual),fmtPct(M.qpct)+' · CPQL '+(M.cpql?fmtUsd(M.cpql):'—')+(hp&&PP.qual?planSuffix(T.qual,PP.qual):''),''],
+    ['Продажи',fmtInt(T.sale),fmtPct(M.spct)+' от квалов'+(hp&&PP.sale?planSuffix(T.sale,PP.sale):''),'goodv'],
+    ['Выручка',fmtKzt(T.rev),fmtUsd(M.revUsd)+(hp&&PP.rev?planSuffix(T.rev,PP.rev):''),''],
     ['Расход',fmtUsd(T.spend),'CPL '+(M.cpl?fmtUsd(M.cpl):'—'),''],
     ['ROMI',M.romi==null?'—':fmtPct(M.romi),'CAC '+(M.cac?fmtUsd(M.cac):'—'),M.romi>=0?'goodv':'badv'],
   ];
@@ -441,18 +455,19 @@ function cmpVals(a,b,dir){const an=(a==null||a===''||(typeof a==='number'&&isNaN
 function sortHead(t,label,col,align){const s=sortState[t];const on=s.col===col;const ar=on?(s.dir<0?' ↓':' ↑'):'';return '<th class="'+(align||'')+' sortable'+(on?' son':'')+'" onclick="setSort(\''+t+'\',\''+col+'\')">'+label+ar+'</th>';}
 function sortArr(arr,t,getVal){const s=sortState[t];arr.sort((x,y)=>cmpVals(getVal(x,s.col),getVal(y,s.col),s.dir));}
 
-function rowHtml(name,tag,M,isTotal){
+function rowHtml(name,tag,M,isTotal,plan){
+  const pm=(m,html)=>plan&&plan[m]?html+planMini(M[m],plan[m]):html;
   const cells=[
-    fmtInt(M.leads),
+    pm('leads',fmtInt(M.leads)),
     M.perDay.toFixed(1).replace('.',','),
     M.conv==null?dash:'<span class="pill '+(M.conv>=8?'g':M.conv>=4?'w':'b')+'">'+fmtPct(M.conv)+'</span>',
-    fmtInt(M.qual),
+    pm('qual',fmtInt(M.qual)),
     pctPill(M.qpct),
     M.cpql?fmtUsd(M.cpql):dash,
-    '<span class="'+(M.sale?'sale':'')+'">'+fmtInt(M.sale)+'</span>',
+    pm('sale','<span class="'+(M.sale?'sale':'')+'">'+fmtInt(M.sale)+'</span>'),
     M.qual?fmtPct(M.spct):dash,
     M.cac?fmtUsd(M.cac):dash,
-    fmtInt(M.rev),
+    pm('rev',fmtInt(M.rev)),
     M.spend>0?fmtUsd(M.spend):dash,
     M.cpl?fmtUsd(M.cpl):dash,
     romiCell(M.romi),
@@ -470,13 +485,16 @@ function renderTable(mode){
   for(const r of DATA){const key=keyFn(r),mn=norm(r.m),kk=key+'|'+mn;if(seenCk[kk])continue;seenCk[kk]=1;const fd=fbData[mn];if(fd)clk[key]=(clk[key]||0)+fd.clicks;}
   const arr=Object.keys(g).map(k=>{const M=metrics(g[k],rate);M.conv=clk[k]?g[k].leads/clk[k]*100:null;return {k,tag:mode==='med'?dirOf(k):'',M};});
   sortArr(arr,mode,(x,col)=>col==='name'?x.k:x.M[col]);
+  const showPlan = mode==='dir' && hasPlan();
+  const planFor = k=>showPlan?{leads:planPer(k,'leads'),qual:planPer(k,'qual'),sale:planPer(k,'sale'),rev:planPer(k,'rev')}:null;
   const head='<thead><tr>'+sortHead(mode,mode==='med'?'utm_medium':'Направление','name','l')+COLS.map(c=>sortHead(mode,c[0],c[1])).join('')+'</tr></thead>';
   let body='';
-  for(const x of arr) body+=rowHtml(x.k,x.tag,x.M,false);
+  for(const x of arr) body+=rowHtml(x.k,x.tag,x.M,false,planFor(x.k));
   // total
   let T=blank(); let clkT=0; for(const x of arr){for(const f of ['leads','qual','sale','rev','spend'])T[f]+=g[x.k][f];clkT+=clk[x.k]||0;}
   const MT=metrics(T,rate); MT.conv=clkT?T.leads/clkT*100:null;
-  body+=rowHtml('ИТОГО','',MT,true);
+  const PT=planTotals();
+  body+=rowHtml('ИТОГО','',MT,true,showPlan?{leads:PT.leads,qual:PT.qual,sale:PT.sale,rev:PT.rev}:null);
   return '<table class="data">'+head+'<tbody>'+body+'</tbody></table>';
 }
 
@@ -486,15 +504,22 @@ function renderGeo(){
   const cityCols=['Алматы','Астана','Караганда','Шымкент','Без города / другие'];
   const langCols=['Русский','Қазақ тілі','Без языка'];
   const th=a=>'<th>'+a+'</th>';
-  let h='<table class="data"><thead><tr><th class="l">Направление</th><th>Лиды</th>'+cityCols.map(th).join('')+'<th>·</th>'+langCols.map(th).join('')+'</tr></thead><tbody>';
-  const tot={leads:0,city:{},lang:{}};
+  const dclk=clicksByGroup(r=>groupDir(r)); const showConv=Object.keys(dclk).length>0; const showPlan=hasPlan();
+  const convH=showConv?'<th>Конв. сайта</th>':''; const planH=showPlan?'<th>% плана (лиды)</th>':'';
+  const convC=(ld,dir)=>{if(!showConv)return '';const cl=dclk[dir]||0;if(!cl)return '<td class="tnum"><span class="mut">·</span></td>';const v=ld/cl*100;return '<td class="tnum"><span class="pill '+(v>=8?'g':v>=4?'w':'b')+'">'+fmtPct(v)+'</span></td>';};
+  const planC=(ld,dir)=>{if(!showPlan)return '';const per=planPer(dir,'leads');if(!per)return '<td class="tnum"><span class="mut">·</span></td>';const pct=ld/per*100,gap=Math.round(per-ld);return '<td class="tnum"><span class="pill '+(pct>=100?'g':pct>=70?'w':'b')+'">'+Math.round(pct)+'%</span>'+(gap>0?'<div class="plfact" style="color:var(--bad)">−'+fmtInt(gap)+'</div>':'<div class="plfact" style="color:var(--good)">✓</div>')+'</td>';};
+  let h='<table class="data"><thead><tr><th class="l">Направление</th><th>Лиды</th>'+convH+planH+cityCols.map(th).join('')+'<th>·</th>'+langCols.map(th).join('')+'</tr></thead><tbody>';
+  const tot={leads:0,city:{},lang:{}};let ltC=0,clC=0;
   for(const k of keys){const o=g[k];
-    tot.leads+=o.leads;cityCols.forEach(c=>tot.city[c]=(tot.city[c]||0)+(o.city[c]||0));langCols.forEach(c=>tot.lang[c]=(tot.lang[c]||0)+(o.lang[c]||0));
-    h+='<tr><td class="l"><span class="name">'+k+'</span></td><td class="tnum">'+fmtInt(o.leads)+'</td>'+
+    tot.leads+=o.leads;cityCols.forEach(c=>tot.city[c]=(tot.city[c]||0)+(o.city[c]||0));langCols.forEach(c=>tot.lang[c]=(tot.lang[c]||0)+(o.lang[c]||0));ltC+=o.leads;clC+=dclk[k]||0;
+    h+='<tr><td class="l"><span class="name">'+k+'</span></td><td class="tnum">'+fmtInt(o.leads)+'</td>'+convC(o.leads,k)+planC(o.leads,k)+
        cityCols.map(c=>'<td class="tnum">'+(o.city[c]||0)+'</td>').join('')+'<td></td>'+
        langCols.map(c=>'<td class="tnum">'+(o.lang[c]||0)+'</td>').join('')+'</tr>';
   }
-  h+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtInt(tot.leads)+'</td>'+
+  const convT=showConv?(clC?'<td class="tnum"><span class="pill '+((ltC/clC*100)>=8?'g':(ltC/clC*100)>=4?'w':'b')+'">'+fmtPct(ltC/clC*100)+'</span></td>':'<td class="tnum"><span class="mut">·</span></td>'):'';
+  const PTleads=showPlan?planTotals().leads:0;
+  const planT=showPlan?(PTleads?'<td class="tnum"><span class="pill '+((tot.leads/PTleads*100)>=100?'g':(tot.leads/PTleads*100)>=70?'w':'b')+'">'+Math.round(tot.leads/PTleads*100)+'%</span>'+(Math.round(PTleads-tot.leads)>0?'<div class="plfact" style="color:var(--bad)">−'+fmtInt(Math.round(PTleads-tot.leads))+'</div>':'<div class="plfact" style="color:var(--good)">✓</div>')+'</td>':'<td class="tnum"><span class="mut">·</span></td>'):'';
+  h+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtInt(tot.leads)+'</td>'+convT+planT+
      cityCols.map(c=>'<td class="tnum">'+(tot.city[c]||0)+'</td>').join('')+'<td></td>'+
      langCols.map(c=>'<td class="tnum">'+(tot.lang[c]||0)+'</td>').join('')+'</tr>';
   h+='</tbody></table>';
@@ -521,24 +546,34 @@ function renderRecon(){
   const bymed={};for(const r of DATA){const mn=norm(r.m);if(!(mn in bymed))bymed[mn]=spendOf(mn);}
   for(const d in G){let s=0;adMeds[d].forEach(mn=>s+=bymed[mn]);G[d].spend=s;}
   // funnel table
-  const cols=[['Расход $','spend'],['Лиды','leads'],['Квал','qual'],['%квал','qpct'],['CPQL $','cpql'],['Оплаты','paid'],['Выручка ₸','rev'],['Ср. чек ₸','avg'],['CAC $','cac'],['ROMI','romi']];
+  const clk=clicksByGroup(segKey);
+  const showPlan=!reconSeg&&hasPlan();
+  const cols=[['Расход $','spend'],['Лиды','leads'],['Конв. сайта','conv'],['Квал','qual'],['%квал','qpct'],['CPQL $','cpql'],['Оплаты','paid'],['Выручка ₸','rev'],['Ср. чек ₸','avg'],['CAC $','cac'],['ROMI','romi']];
   const farr=Object.keys(G).map(d=>{const g=G[d];return {d,spend:g.spend,leads:g.leads,qual:g.qual,paid:g.paid,rev:g.rev,
+    conv:clk[d]?g.leads/clk[d]*100:null,
     qpct:g.leads?g.qual/g.leads*100:0,cpql:g.qual&&g.spend?g.spend/g.qual:null,
     cac:g.paid&&g.spend?g.spend/g.paid:null,avg:g.paid?g.rev/g.paid:null,romi:g.spend>0?((g.rev/rate)-g.spend)/g.spend*100:null};});
   sortArr(farr,'recon',(x,col)=>col==='name'?x.d:x[col]);
-  let body='';const T={spend:0,leads:0,qual:0,paid:0,rev:0};
+  const convCell=v=>v==null?dash:'<span class="pill '+(v>=8?'g':v>=4?'w':'b')+'">'+fmtPct(v)+'</span>';
+  let body='';const T={spend:0,leads:0,qual:0,paid:0,rev:0};let clkT=0;
   for(const g of farr){
-    T.spend+=g.spend;T.leads+=g.leads;T.qual+=g.qual;T.paid+=g.paid;T.rev+=g.rev;
+    T.spend+=g.spend;T.leads+=g.leads;T.qual+=g.qual;T.paid+=g.paid;T.rev+=g.rev;clkT+=clk[g.d]||0;
+    const pL=showPlan?planPer(g.d,'leads'):0,pQ=showPlan?planPer(g.d,'qual'):0,pR=showPlan?planPer(g.d,'rev'):0;
     body+='<tr><td class="l"><span class="name">'+g.d+'</span></td>'+
-      '<td class="tnum">'+(g.spend?fmtUsd(g.spend):dash)+'</td><td class="tnum">'+fmtInt(g.leads)+'</td><td class="tnum">'+fmtInt(g.qual)+'</td>'+
+      '<td class="tnum">'+(g.spend?fmtUsd(g.spend):dash)+'</td>'+
+      '<td class="tnum">'+fmtInt(g.leads)+(pL?planMini(g.leads,pL):'')+'</td>'+
+      '<td class="tnum">'+convCell(g.conv)+'</td>'+
+      '<td class="tnum">'+fmtInt(g.qual)+(pQ?planMini(g.qual,pQ):'')+'</td>'+
       '<td class="tnum">'+pctPill(g.qpct)+'</td><td class="tnum">'+(g.cpql==null?dash:fmtUsd(g.cpql))+'</td>'+
-      '<td class="tnum"><span class="'+(g.paid?'sale':'')+'">'+fmtInt(g.paid)+'</span></td><td class="tnum">'+(g.rev?fmtInt(g.rev):dash)+'</td>'+
+      '<td class="tnum"><span class="'+(g.paid?'sale':'')+'">'+fmtInt(g.paid)+'</span></td>'+
+      '<td class="tnum">'+(g.rev?fmtInt(g.rev):dash)+(pR?planMini(g.rev,pR):'')+'</td>'+
       '<td class="tnum">'+(g.avg==null?dash:fmtInt(g.avg))+'</td><td class="tnum">'+(g.cac==null?dash:fmtUsd(g.cac))+'</td><td class="tnum">'+romiCell(g.romi)+'</td></tr>';
   }
   const keys=Object.keys(G);
   const romiT=T.spend>0?((T.rev/rate)-T.spend)/T.spend*100:null;
-  const qpctT=T.leads?T.qual/T.leads*100:0, cpqlT=T.qual&&T.spend?T.spend/T.qual:null;
-  body+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtUsd(T.spend)+'</td><td class="tnum">'+fmtInt(T.leads)+'</td><td class="tnum">'+fmtInt(T.qual)+'</td><td class="tnum">'+pctPill(qpctT)+'</td><td class="tnum">'+(cpqlT==null?dash:fmtUsd(cpqlT))+'</td><td class="tnum">'+fmtInt(T.paid)+'</td><td class="tnum">'+fmtInt(T.rev)+'</td><td class="tnum">'+(T.paid?fmtInt(T.rev/T.paid):dash)+'</td><td class="tnum">'+(T.paid?fmtUsd(T.spend/T.paid):dash)+'</td><td class="tnum">'+romiCell(romiT)+'</td></tr>';
+  const qpctT=T.leads?T.qual/T.leads*100:0, cpqlT=T.qual&&T.spend?T.spend/T.qual:null, convT=clkT?T.leads/clkT*100:null;
+  const PT=planTotals();
+  body+='<tr class="total"><td class="l">ИТОГО</td><td class="tnum">'+fmtUsd(T.spend)+'</td><td class="tnum">'+fmtInt(T.leads)+(showPlan&&PT.leads?planMini(T.leads,PT.leads):'')+'</td><td class="tnum">'+convCell(convT)+'</td><td class="tnum">'+fmtInt(T.qual)+(showPlan&&PT.qual?planMini(T.qual,PT.qual):'')+'</td><td class="tnum">'+pctPill(qpctT)+'</td><td class="tnum">'+(cpqlT==null?dash:fmtUsd(cpqlT))+'</td><td class="tnum">'+fmtInt(T.paid)+'</td><td class="tnum">'+fmtInt(T.rev)+(showPlan&&PT.rev?planMini(T.rev,PT.rev):'')+'</td><td class="tnum">'+(T.paid?fmtInt(T.rev/T.paid):dash)+'</td><td class="tnum">'+(T.paid?fmtUsd(T.spend/T.paid):dash)+'</td><td class="tnum">'+romiCell(romiT)+'</td></tr>';
   const toggle='<div style="display:flex;gap:6px;align-items:center;padding:12px 14px 2px;flex-wrap:wrap"><span class="mut" style="font-size:12px">Группировка:</span>'+
     '<button class="tab'+(!reconSeg?' active':'')+'" style="font-size:13px;padding:5px 12px" onclick="setReconSeg(false)">Направление</button>'+
     '<button class="tab'+(reconSeg?' active':'')+'" style="font-size:13px;padding:5px 12px" onclick="setReconSeg(true)">Направление + город (план)</button></div>';
@@ -600,6 +635,23 @@ function renderDays(){
     body+='<tr><td class="l">'+d.split('-').reverse().join('.')+'</td>'+cells+'<td class="tnum"><b>'+fmtInt(rowT)+'</b></td></tr>';
   }
   body+='<tr class="total"><td class="l">ИТОГО</td>'+dirs.map(dr=>'<td class="tnum">'+fmtInt(colT[dr]||0)+'</td>').join('')+'<td class="tnum">'+fmtInt(grand)+'</td></tr>';
+  // план по выбранному показателю (период) + % выполнения + нехватка
+  const metName=(metricsSel.find(m=>m[0]===dayMetric)||['','' ])[1];
+  if(hasPlan()){
+    let planTot=0;
+    const planCells=dirs.map(dr=>{const per=planPer(dr,dayMetric);planTot+=per;return '<td class="tnum">'+(per?fmtInt(per):'<span class="mut">·</span>')+'</td>';}).join('');
+    body+='<tr class="total" style="font-weight:600"><td class="l">План ('+metName+', период)</td>'+planCells+'<td class="tnum">'+(planTot?fmtInt(planTot):dash)+'</td></tr>';
+    const pctCells=dirs.map(dr=>{const per=planPer(dr,dayMetric),f=colT[dr]||0;if(!per)return '<td class="tnum"><span class="mut">·</span></td>';const pct=f/per*100,gap=Math.round(per-f);const cls=pct>=100?'g':pct>=70?'w':'b';return '<td class="tnum"><span class="pill '+cls+'">'+Math.round(pct)+'%</span>'+(gap>0?'<div class="plfact" style="color:var(--bad)">−'+fmtInt(gap)+'</div>':'<div class="plfact" style="color:var(--good)">✓</div>')+'</td>';}).join('');
+    const gpct=planTot?grand/planTot*100:null,ggap=planTot?Math.round(planTot-grand):0;
+    body+='<tr class="total"><td class="l">% плана / не хватает</td>'+pctCells+'<td class="tnum">'+(gpct==null?dash:'<span class="pill '+(gpct>=100?'g':gpct>=70?'w':'b')+'">'+Math.round(gpct)+'%</span>'+(ggap>0?'<div class="plfact" style="color:var(--bad)">−'+fmtInt(ggap)+'</div>':'<div class="plfact" style="color:var(--good)">✓</div>'))+'</td></tr>';
+  }
+  // конверсия сайта по направлению (лиды/клики за период)
+  const dclk=clicksByGroup(r=>groupDir(r));
+  if(Object.keys(dclk).length){
+    let lt=0,ct=0;
+    const convCells=dirs.map(dr=>{const cl=dclk[dr]||0,ld=dg[dr]?dg[dr].leads:0;lt+=ld;ct+=cl;if(!cl)return '<td class="tnum"><span class="mut">·</span></td>';const v=ld/cl*100;return '<td class="tnum"><span class="pill '+(v>=8?'g':v>=4?'w':'b')+'">'+fmtPct(v)+'</span></td>';}).join('');
+    body+='<tr class="total"><td class="l">Конв. сайта (лиды/клики)</td>'+convCells+'<td class="tnum">'+(ct?'<span class="pill '+((lt/ct*100)>=8?'g':(lt/ct*100)>=4?'w':'b')+'">'+fmtPct(lt/ct*100)+'</span>':dash)+'</td></tr>';
+  }
   return seg+'<div class="tscroll"><table class="data" style="min-width:'+(170+dirs.length*88)+'px">'+head+'<tbody>'+body+'</tbody></table></div>';
 }
 function bindDays(){document.querySelectorAll('#panel .daymetric').forEach(b=>b.addEventListener('click',()=>{dayMetric=b.getAttribute('data-m');renderPanel();}));}
@@ -610,17 +662,21 @@ function renderPlan(){
   const dirs=[...new Set(Object.keys(g).concat(Object.keys(cfg.plan)))].sort((a,b)=>((g[b]&&g[b].leads)||0)-((g[a]&&g[a].leads)||0));
   const mets=[['leads','Лиды'],['qual','Квал'],['sale','Продажи'],['rev','Выручка ₸']];
   planFact={};
+  const dclk=clicksByGroup(r=>groupDir(r));
   const barCls=pct=>pct==null?'':(pct>=100?'':pct>=70?'warn':'bad');
+  const gapTxt=(f,per)=>{if(!per)return '';const gap=Math.round(per-f);return gap>0?' · <span style="color:var(--bad)">не хватает '+fmtInt(gap)+'</span>':' · <span style="color:var(--good)">✓ выполнен</span>';};
   function cell(dir,m){const f=planFact[dir][m];const day=(cfg.plan[dir]&&cfg.plan[dir][m])||'';const per=day?day*N:0;const pct=per?f/per*100:null;
-    return '<td><input class="planinp" data-d="'+dir.replace(/"/g,'&quot;')+'" data-m="'+m+'" type="number" min="0" value="'+day+'" placeholder="план/день"><div class="plrow"><div class="plbar"><i class="'+barCls(pct)+'" style="width:'+(pct==null?0:Math.min(100,pct))+'%"></i></div><span class="plpct">'+(pct==null?'—':Math.round(pct)+'%')+'</span></div><div class="plfact">факт '+fmtInt(f)+(per?' · план '+fmtInt(per):'')+'</div></td>';}
-  let body='';const T={leads:0,qual:0,sale:0,rev:0},TP={leads:0,qual:0,sale:0,rev:0};
+    return '<td><input class="planinp" data-d="'+dir.replace(/"/g,'&quot;')+'" data-m="'+m+'" type="number" min="0" value="'+day+'" placeholder="план/день"><div class="plrow"><div class="plbar"><i class="'+barCls(pct)+'" style="width:'+(pct==null?0:Math.min(100,pct))+'%"></i></div><span class="plpct">'+(pct==null?'—':Math.round(pct)+'%')+'</span></div><div class="plfact">факт '+fmtInt(f)+(per?' · план '+fmtInt(per):'')+gapTxt(f,per)+'</div></td>';}
+  const convCell=(ld,cl)=>{if(!cl)return '<td class="tnum"><span class="mut">—</span></td>';const v=ld/cl*100;return '<td class="tnum"><span class="pill '+(v>=8?'g':v>=4?'w':'b')+'">'+fmtPct(v)+'</span></td>';};
+  let body='';const T={leads:0,qual:0,sale:0,rev:0},TP={leads:0,qual:0,sale:0,rev:0};let ltC=0,clC=0;
   for(const dir of dirs){const o=g[dir]||{leads:0,qual:0,sale:0,rev:0};planFact[dir]={leads:o.leads,qual:o.qual,sale:o.sale,rev:o.rev};
     mets.forEach(mm=>{T[mm[0]]+=planFact[dir][mm[0]];TP[mm[0]]+=((cfg.plan[dir]&&+cfg.plan[dir][mm[0]])||0)*N;});
-    body+='<tr><td class="l"><span class="name">'+dir+'</span></td>'+mets.map(mm=>cell(dir,mm[0])).join('')+'</tr>';
+    const cl=dclk[dir]||0,ld=o.leads||0;ltC+=ld;clC+=cl;
+    body+='<tr><td class="l"><span class="name">'+dir+'</span></td>'+mets.map(mm=>cell(dir,mm[0])).join('')+convCell(ld,cl)+'</tr>';
   }
-  const tcell=m=>{const f=T[m],per=TP[m];const pct=per?f/per*100:null;return '<td><div style="font-weight:700;font-variant-numeric:tabular-nums;font-size:13px">'+(per?'план '+fmtInt(per):'—')+'</div><div class="plrow"><div class="plbar"><i class="'+barCls(pct)+'" style="width:'+(pct==null?0:Math.min(100,pct))+'%"></i></div><span class="plpct">'+(pct==null?'—':Math.round(pct)+'%')+'</span></div><div class="plfact">факт '+fmtInt(f)+'</div></td>';};
-  body+='<tr class="total"><td class="l">ИТОГО</td>'+mets.map(mm=>tcell(mm[0])).join('')+'</tr>';
-  const head='<thead><tr><th class="l">Направление</th>'+mets.map(m=>'<th class="l">'+m[1]+' <span class="tag" style="text-transform:none">/день</span></th>').join('')+'</tr></thead>';
+  const tcell=m=>{const f=T[m],per=TP[m];const pct=per?f/per*100:null;return '<td><div style="font-weight:700;font-variant-numeric:tabular-nums;font-size:13px">'+(per?'план '+fmtInt(per):'—')+'</div><div class="plrow"><div class="plbar"><i class="'+barCls(pct)+'" style="width:'+(pct==null?0:Math.min(100,pct))+'%"></i></div><span class="plpct">'+(pct==null?'—':Math.round(pct)+'%')+'</span></div><div class="plfact">факт '+fmtInt(f)+gapTxt(f,per)+'</div></td>';};
+  body+='<tr class="total"><td class="l">ИТОГО</td>'+mets.map(mm=>tcell(mm[0])).join('')+convCell(ltC,clC)+'</tr>';
+  const head='<thead><tr><th class="l">Направление</th>'+mets.map(m=>'<th class="l">'+m[1]+' <span class="tag" style="text-transform:none">/день</span></th>').join('')+'<th>Конв. сайта</th></tr></thead>';
   const bar='<div style="padding:12px 14px 2px;font-size:13px;color:var(--muted)">План задаётся <b>на день</b>. Факт — за выбранный период (<b>'+N+' дн.</b>), план за период = план/день × '+N+'. '+(planDoc?'<span style="color:var(--good)">☁ Общий план (виден всем).</span>':'<span>Хранится локально в этом браузере.</span>')+'</div>';
   return bar+'<div class="tscroll"><table class="data" style="min-width:740px">'+head+'<tbody>'+body+'</tbody></table></div>';
 }
@@ -633,7 +689,8 @@ function bindPlan(){
       const f=(planFact[d]||{})[m]||0,per=v?v*N:0,pct=per?f/per*100:null;
       const c=inp.parentElement,bar=c.querySelector('.plbar>i'),pl=c.querySelector('.plpct'),fc=c.querySelector('.plfact');
       bar.style.width=(pct==null?0:Math.min(100,pct))+'%';bar.className=pct==null?'':(pct>=100?'':pct>=70?'warn':'bad');pl.textContent=pct==null?'—':Math.round(pct)+'%';
-      if(fc)fc.innerHTML='факт '+fmtInt(f)+(per?' · план '+fmtInt(per):'');
+      const gap=per?Math.round(per-f):0;const gtxt=!per?'':(gap>0?' · <span style="color:var(--bad)">не хватает '+fmtInt(gap)+'</span>':' · <span style="color:var(--good)">✓ выполнен</span>');
+      if(fc)fc.innerHTML='факт '+fmtInt(f)+(per?' · план '+fmtInt(per):'')+gtxt;
     });
     inp.addEventListener('change',()=>renderPanel());
   });
@@ -669,13 +726,13 @@ function renderGuide(){
 
   <h2>4. Вкладки</h2>
   <table><thead><tr><th>Вкладка</th><th>Что показывает</th></tr></thead><tbody>
-    <tr><td><b>Сверка 3 источников</b></td><td>Главная. Воронка по рекламному направлению: расход (FB) → лиды/квал (amoCRM) → оплаты/выручка. Ниже — матрица утечки (реклама какого направления → в каком реально оплатили), матрица «план-город → факт-город» и «факт-лид vs факт-оплата» по городам. Переключатель «Направление / Направление + город».</td></tr>
-    <tr><td><b>По направлениям</b></td><td>Экономика по направлению: лиды, /день, конв. сайта, квал, %квал, CPQL, продажи, %квал→прод, CAC, выручка, расход, CPL, ROMI.</td></tr>
-    <tr><td><b>По utm_medium</b></td><td>То же, но по каждой кампании.</td></tr>
+    <tr><td><b>Сверка 3 источников</b></td><td>Главная. Воронка по рекламному направлению: расход (FB) → лиды/квал (amoCRM) → оплаты/выручка. Есть <b>конв. сайта</b> (лиды/клики) и <b>план под фактом</b> (лиды/квал/выручка): бар, % выполнения и «−N» сколько не хватает. Ниже — матрица утечки, «план-город → факт-город» и «факт-лид vs факт-оплата» по городам. Переключатель «Направление / Направление + город».</td></tr>
+    <tr><td><b>По направлениям</b></td><td>Экономика по направлению: лиды, /день, конв. сайта, квал, %квал, CPQL, продажи, %квал→прод, CAC, выручка, расход, CPL, ROMI. Под лидами/квалом/продажами/выручкой — план на период, % и нехватка.</td></tr>
+    <tr><td><b>По utm_medium</b></td><td>То же по каждой кампании (конв. сайта есть; план — по направлению, не по кампании, поэтому здесь не дублируется).</td></tr>
     <tr><td><b>Реклама (FB)</b></td><td>Показы, клики, CTR, CPC, конв. сайта, квал, %квал, CPQL, расход, CPL по кампаниям.</td></tr>
-    <tr><td><b>По дням</b></td><td>Матрица «дата × направление»: сколько лидов (или квалов/продаж/выручки — переключатель сверху) пришло каждый день по каждому направлению.</td></tr>
-    <tr><td><b>🎯 План</b></td><td>Задаёшь план <b>на день</b> по направлениям (лиды, квал, продажи, выручка) — сервис умножает на число дней периода и показывает факт, % выполнения и прогресс-бар. По опубликованной ссылке план общий — задал один, видят все.</td></tr>
-    <tr><td><b>Города и языки</b></td><td>Разбивка лидов (факт) по городам и языкам.</td></tr>
+    <tr><td><b>По дням</b></td><td>Матрица «дата × направление» (лиды/квал/продажи/выручка — переключатель). Внизу — строки <b>«План (период)»</b>, <b>«% плана / не хватает»</b> и <b>«Конв. сайта»</b> по каждому направлению.</td></tr>
+    <tr><td><b>🎯 План</b></td><td>Задаёшь план <b>на день</b> по направлениям (лиды, квал, продажи, выручка) — сервис умножает на число дней периода и показывает факт, % выполнения, прогресс-бар и <b>сколько не хватает</b>. Плюс колонка конв. сайта по направлению. По опубликованной ссылке план общий — задал один, видят все.</td></tr>
+    <tr><td><b>Города и языки</b></td><td>Разбивка лидов (факт) по городам и языкам + колонки <b>конв. сайта</b> и <b>% плана (лиды)</b> по направлению.</td></tr>
     <tr><td><b>Маппинг</b></td><td>Ручная привязка кампаний к направлению и городу + пакет → направление. См. раздел 5.</td></tr>
   </tbody></table>
 
@@ -711,13 +768,15 @@ function renderGuide(){
     <tr><td><b>Выручка</b></td><td>В «Сверке» — реальные оплаты; в остальных таблицах — сумма «Бюджет ₸».</td></tr>
     <tr><td><b>ROMI</b></td><td>(Выручка ÷ Курс − Расход) ÷ Расход.</td></tr>
     <tr><td><b>Ср. чек</b></td><td>Выручка (оплаты) ÷ Кол-во оплат.</td></tr>
+    <tr><td><b>% плана</b></td><td>Факт за период ÷ (план на день × число дней периода). «−N» = сколько ещё не хватает до плана; «✓» = план выполнен. Виден в плитках сверху (на всех вкладках), в «Сверке», «По направлениям», «По дням», «Плане» и «Городах».</td></tr>
   </tbody></table>
 
   <h2>9. Важные нюансы</h2>
   <div class="callout warn"><b>Оплата приходит позже лида.</b> Джойн лидов недели с оплатами той же недели даёт мало совпадений — продажи приходят позже. Для честного ROMI бери лиды за более ранний период: связка идёт по ID сделки, а не по дате, и находит оплаты когорты, когда бы они ни пришли.</div>
   <ul>
     <li><b>«—»</b> — нет данных для расчёта (нет расхода по каналу, нет квалов/продаж/кликов).</li>
-    <li><b>«(без метки)»</b> — лиды без <span class="f">utm_medium</span> (органика/ручные). Не ошибка.</li>
+    <li><b>«Сарафанка»</b> — лид, у которого нет ни одной utm-метки (<span class="f">utm_medium</span>, <span class="f">utm_source</span>, <span class="f">utm_campaign</span>) <b>и</b> нет тегов в amoCRM. Такие лиды автоматически относятся к сарафанке.</li>
+    <li><b>«(без метки)»</b> — есть тег в amo или частичная utm-метка, но нет <span class="f">utm_medium</span>. Не ошибка.</li>
     <li><b>Несовпадение неймингов</b> — если название кампании в FB ≠ utm_medium в CRM, расход не сцепится: поправь названия или задай расход вручную.</li>
     <li><b>Периоды</b> лидов и FB должны совпадать.</li>
   </ul>
@@ -986,16 +1045,20 @@ function pick(headers,tests){for(const t of tests){for(const h of headers)if(nor
 function toRecords(rows){
   if(!rows.length)return [];
   const H=Object.keys(rows[0]);
-  const cId=pick(H,['id']),cStage=pick(H,['этап сделки','этап']),cReason=pick(H,['причина отказа','причина']),cBud=pick(H,['бюджет']),cMed=pick(H,['utm_medium']),cCmp=pick(H,['utm_campaign']),cSrc=pick(H,['utm_source']),cForm=pick(H,['formname']),cCrs=pick(H,['курс']),cDate=pick(H,['дата создания','дата']);
+  const cId=pick(H,['id']),cStage=pick(H,['этап сделки','этап']),cReason=pick(H,['причина отказа','причина']),cBud=pick(H,['бюджет']),cMed=pick(H,['utm_medium']),cCmp=pick(H,['utm_campaign']),cSrc=pick(H,['utm_source']),cForm=pick(H,['formname']),cCrs=pick(H,['курс']),cDate=pick(H,['дата создания','дата']),cTags=pick(H,['теги','тэги','tags']);
   const toISO=s=>{s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];m=s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);if(m)return m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');return '';};
   const cityCols=H.filter(h=>{const n=norm(h);return n.includes('город')||n.includes('қала')||n.includes('қаладан');});
   const langCols=H.filter(h=>{const n=norm(h);return n==='язык'||n.includes('язык')||n.includes('тілі')||n.includes('на_каком')||n.includes('комфортнее');});
   return rows.filter(r=>Object.values(r).some(v=>v!=='')).map(r=>{
     const first=cols=>{for(const c of cols){const v=(r[c]||'').toString().trim();if(v)return v;}return '';};
     let id=(r[cId]==null?'':r[cId]).toString().trim(); if(/^\d+\.0$/.test(id))id=id.slice(0,-2);
+    let med=(r[cMed]||'').toString().trim(),cmp=(r[cCmp]||'').toString().trim(),src=(r[cSrc]||'').toString().trim();
+    const tags=(cTags?(r[cTags]||'').toString():'').trim();
+    // Нет ни одной utm-метки и нет тегов в amo → «Сарафанка»
+    if(!med&&!cmp&&!src&&!tags) med='Сарафанка';
     return {id:id,st:(r[cStage]||'').toString(),rs:(r[cReason]||'').toString(),
       b:parseFloat(((r[cBud]||'0').toString()).replace(/[^\d.]/g,''))||0,
-      m:(r[cMed]||'').toString().trim(),cmp:(r[cCmp]||'').toString().trim(),src:(r[cSrc]||'').toString().trim(),c:first(cityCols),l:first(langCols),
+      m:med,cmp:cmp,src:src,tags:tags,c:first(cityCols),l:first(langCols),
       fn:(r[cForm]||'').toString(),crs:(r[cCrs]||'').toString(),
       d:toISO(r[cDate])};
   });
